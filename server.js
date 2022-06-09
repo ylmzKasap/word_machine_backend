@@ -14,6 +14,8 @@ const database = new Pool({
 const app = startApp(database);
 
 async function main() {
+  await db_tests.teardown(database);
+  await db_tests.setUp(database);
 }
 
 main()
