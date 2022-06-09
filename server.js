@@ -5,7 +5,7 @@ const development_db = require('./database/development_database');
 const { Pool } = require("pg");
 
 const isProduction = process.env.NODE_ENV === "production";
-const ssl = process.env.NODE_ENV == 'production' ? '?sslmode=require' : '';
+const ssl = process.env.NODE_ENV == 'production' ? '?ssl=false' : '';
 
 const database = new Pool({
   connectionString: isProduction ? process.env.DATABASE_URL + ssl : development_db
