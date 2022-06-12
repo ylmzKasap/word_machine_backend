@@ -1,25 +1,25 @@
-const fs = require('fs');
+async function locate_words (pool, wordArray, target_language) {
+    let missingImages = [];
+    let missingSounds = [];
 
-function findFiles (directory, wordArray, extensions) {
-    // Directory -> `${process.cwd()}\\public\\images\\`
-    let missingFiles = [];
-    let foundFiles = [];
-    for (let word of wordArray) {
-        let fileFound = false;
-        for (let extension of extensions) {
-            if (fs.existsSync(directory + word + extension)) {
-                foundFiles.push(word + extension);
-                fileFound = true;
-                break;
-            }
+    const wordQuery = await pool.query(`
+        SELECT (image_path, sound_path, $1) FROM word_content
+            WHERE $1 = $2;`).then(res => res.rows[0]).catch(() => false);
+    
+    for (word of wordArray) {
+        const response = await pool.query(wordQuery, [target_language, word]);
+        if (!response) {
+            missingImages.push(word);
+            missingSounds.push(word);
+        } else if (!response.image_path) {
+            missingImages.push(word);
+        } else if (!response.sound_path) {
+            missingSounds.push(word);
         }
-        if (!fileFound) {
-            missingFiles.push(word);
-        }
-    };
-    return [missingFiles, foundFiles];
-};
+    }
 
+    return [missingImages, missingSounds];
+}
 
 function find_unique_violation(firstObjArray, secondObjArray, columns) {
     const getValues = (obj) => {
@@ -47,5 +47,5 @@ function find_unique_violation(firstObjArray, secondObjArray, columns) {
 
 
 module.exports = {
-    findFiles, find_unique_violation
+    locate_words, find_unique_violation
 }

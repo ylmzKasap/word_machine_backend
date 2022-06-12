@@ -21,6 +21,8 @@ if (isProduction) {
 const app = startApp(database);
 
 async function main() {
+  await db_tests.teardown(database);
+  await db_tests.setup(database);
 }
 
 main()

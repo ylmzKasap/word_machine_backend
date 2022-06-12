@@ -1,6 +1,6 @@
 const directoryUtils = require('./directory')
 
-async function updateDirectory(pool, owner, item_id, parent_id, new_parent_id, category_id) {
+async function update_directory(pool, owner, item_id, parent_id, new_parent_id, category_id) {
     const categoryQuery = category_id ? ` AND category_id = $5` : " AND category_id IS NULL";
     // Move the item.
     const queryText = `
@@ -20,12 +20,12 @@ async function updateDirectory(pool, owner, item_id, parent_id, new_parent_id, c
     }
 
     // Fix the order of remeaning items.
-    const orderStatus = await directoryUtils.reorderDirectory(pool, owner, parent_id)
+    const orderStatus = await directoryUtils.reorder_directory(pool, owner, parent_id)
     .catch((err) => ({"error": true, "code": err.code}));
 
     return orderStatus;
 }
 
 module.exports = {
-    updateDirectory
+    update_directory
 }

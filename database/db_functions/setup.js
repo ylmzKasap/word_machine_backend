@@ -1,7 +1,7 @@
 const db_builder = require('../build_database');
 
 
-function setupBeforeAndAfter(db) {
+function setup_before_and_after(db) {
     beforeAll(async () => {
         
     });
@@ -17,5 +17,5 @@ function setupBeforeAndAfter(db) {
 }
 
 module.exports = {
-    setupBeforeAndAfter
+    setup_before_and_after
 }

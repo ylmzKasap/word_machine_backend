@@ -1,4 +1,4 @@
-async function checkDirectory(pool, owner, dir_id) {
+async function check_directory(pool, owner, dir_id) {
     const queryText = `
         SELECT * FROM items WHERE owner = $1
         AND item_id = $2
@@ -11,12 +11,12 @@ async function checkDirectory(pool, owner, dir_id) {
     return checkDir ? {'exists': true, 'info': checkDir} : {'exists': false, 'info': null};
 }
 
-async function getDirectory(pool, owner, dir_id, category_id='') {
+async function get_directory(pool, owner, dir_id, category_id='') {
     // Return values:
     // Directory exists -> [itemsOfDirectory, directoryInfo]
     // Directory does not exist -> [false]
 
-    const dir = await checkDirectory(pool, owner, dir_id);
+    const dir = await check_directory(pool, owner, dir_id);
     if (!dir.exists) {
         return [false];
     }
@@ -34,7 +34,7 @@ async function getDirectory(pool, owner, dir_id, category_id='') {
 }
 
 
-async function getRoot(pool, owner) {
+async function get_root(pool, owner) {
     const queryString = 'SELECT root_id FROM users WHERE username = $1;';
 
     const rootInfo = await pool.query(queryString, [owner])
@@ -45,7 +45,7 @@ async function getRoot(pool, owner) {
 }
 
 
-async function getGrandparent(pool, parent_id, owner) {
+async function get_grandparent(pool, parent_id, owner) {
     const queryText = `
         SELECT parent_id FROM items WHERE item_id = $1 AND owner = $2;`;
 
@@ -57,7 +57,7 @@ async function getGrandparent(pool, parent_id, owner) {
 }
 
 
-async function reorderDirectory(pool, owner, directory_id) {
+async function reorder_directory(pool, owner, directory_id) {
     const queryText = `
         UPDATE 
             items
@@ -78,7 +78,7 @@ async function reorderDirectory(pool, owner, directory_id) {
     return {"error": false, "code": ""};
 }
 
-async function getRecursiveTree(pool, owner, item_id) {
+async function get_recursive_tree(pool, owner, item_id) {
     const queryText = `
         WITH RECURSIVE item_tree AS (
             SELECT
@@ -111,5 +111,5 @@ async function getRecursiveTree(pool, owner, item_id) {
 }
 
 module.exports = {
-    checkDirectory, getDirectory, getRoot, getGrandparent, reorderDirectory, getRecursiveTree
+    check_directory, get_directory, get_root, get_grandparent, reorder_directory, get_recursive_tree
 }

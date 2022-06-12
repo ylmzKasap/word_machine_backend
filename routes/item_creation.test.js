@@ -28,7 +28,7 @@ describe('Create a deck', () => {
             .post(createDeckUrl)
             .send({
                 "deckName": "myDeck",
-                "content": {"words": ["elevator", "square", "natural"]},
+                "words": ["elevator", "square", "natural"],
                 "parent_id": 1,
                 "category_id": null
             });
@@ -48,7 +48,7 @@ describe('Create a deck', () => {
             .post(createDeckUrl)
             .send({
                 "deckName": "deck_1",
-                "content": {"words": ["elevator", "square", "natural"]},
+                "words": ["elevator", "square", "natural"],
                 "parent_id": 1,
                 "category_id": null
             });
@@ -61,7 +61,7 @@ describe('Create a deck', () => {
             .post(createDeckUrl)
             .send({
                 "deckName": "folder_1",
-                "content": {"words": ["elevator", "square", "natural"]},
+                "words": ["elevator", "square", "natural"],
                 "parent_id": 1,
                 "category_id": null
             });
@@ -74,7 +74,7 @@ describe('Create a deck', () => {
             .post(createDeckUrl)
             .send({
                 "deckName": "deck<33",
-                "content": {"words": ["elevator", "square", "natural"]},
+                "words": ["elevator", "square", "natural"],
                 "parent_id": 1,
                 "category_id": null
             });
@@ -85,7 +85,7 @@ describe('Create a deck', () => {
             .post(createDeckUrl)
             .send({
                 "deckName": "deck_33",
-                "content": {"words": ["ele,vator", "squa<re", "natural"]},
+                "words": ["ele,vator", "squa<re", "natural"],
                 "parent_id": 1,
                 "category_id": null
             });
@@ -98,7 +98,7 @@ describe('Create a deck', () => {
             .post(createDeckUrl)
             .send({
                 "deckName": "deck_33",
-                "content": {"words": ["elevator", "square", "natural"]},
+                "words": ["elevator", "square", "natural"],
                 "parent_id": 3463,
                 "category_id": null
             });
@@ -111,7 +111,7 @@ describe('Create a deck', () => {
             .post(createDeckUrl)
             .send({
                 "deckName": "deck_33",
-                "content": {"words": ["elevator", "square", "natural"]},
+                "words": ["elevator", "square", "natural"],
                 "parent_id": 2,
                 "category_id": null
             });
@@ -124,7 +124,7 @@ describe('Create a deck', () => {
             .post(createDeckUrl)
             .send({
                 "deckName": "myDeck",
-                "content": {"words": ["elevator", "square", "natural"]},
+                "words": ["elevator", "square", "natural"],
                 "parent_id": 5,
                 "category_id": 8
             });
@@ -144,7 +144,7 @@ describe('Create a deck', () => {
             .post(createDeckUrl)
             .send({
                 "deckName": "deck_33",
-                "content": {"words": ["elevator", "square", "natural"]},
+                "words": ["elevator", "square", "natural"],
                 "parent_id": 5,
                 "category_id": 3023
             });
@@ -157,7 +157,7 @@ describe('Create a deck', () => {
             .post(createDeckUrl)
             .send({
                 "deckName": "deck_33",
-                "content": {"words": ["elevator", "square", "natural"]},
+                "words": ["elevator", "square", "natural"],
                 "parent_id": 5,
                 "category_id": 30
             });
@@ -170,7 +170,7 @@ describe('Create a deck', () => {
             .post(createDeckUrl)
             .send({
                 "deckName": "deck_33",
-                "content": {"words": ["elevator", "square", "natural"]},
+                "words": ["elevator", "square", "natural"],
                 "parent_id": 1,
                 "category_id": 5
             });
@@ -183,7 +183,7 @@ describe('Create a deck', () => {
             .post(createDeckUrl)
             .send({
                 "deckName": "deck_33",
-                "content": {"words": ["elevator", "EXISTANCE", "natural"]},
+                "words": ["elevator", "EXISTANCE", "natural"],
                 "parent_id": 5,
                 "category_id": 8
             });
@@ -194,7 +194,7 @@ describe('Create a deck', () => {
     test("Body values must be present and valid", async () => {
         await test_utils.check_type_blank({
             "deckName": "deck_15521",
-            "content": {"words": ["elevator", "square", "natural"]},
+            "words": ["elevator", "square", "natural"],
             "parent_id": 5,
             "category_id": 8
         }, createDeckUrl, 'post', app, db);
@@ -204,7 +204,7 @@ describe('Create a deck', () => {
             .post(createDeckUrl)
             .send({
                 "deckName": "deck_521",
-                "content": {"words": 'yes'},
+                "words": 'yes',
                 "parent_id": 5,
                 "category_id": 8
         });
@@ -216,7 +216,7 @@ describe('Create a deck', () => {
             .post(createDeckUrl)
             .send({
                 "deckName": "deck_141",
-                "content": {"words": ["    ", "		", "     "]},
+                "words": ["    ", "		", "     "],
                 "parent_id": 5,
                 "category_id": 8
         });
@@ -228,7 +228,7 @@ describe('Create a deck', () => {
             .post(createDeckUrl)
             .send({
                 "deckName": "deck_141",
-                "content": {"words": ["square", "elevator"], 'extra': 'value'},
+                "words": ["square", "elevator"], 'extra': 'value',
                 "parent_id": 5,
                 "category_id": 8
         });
@@ -377,7 +377,7 @@ describe('Create a category', () => {
             .send({
                 "category_name": "my_category",
                 "parent_id": 6,
-                "content": {"color": "#AA7854"}
+                "color": "#AA7854"
             });
         
         expect(response.status).toEqual(200);
@@ -397,7 +397,7 @@ describe('Create a category', () => {
             .send({
                 "category_name": "category_3",
                 "parent_id": 6,
-                "content": {"color": "#AA7854"}
+                "color": "#AA7854"
             });
         
         fail_with_json(response, 400, "Category 'category_3' already exists.");
@@ -410,7 +410,7 @@ describe('Create a category', () => {
             .send({
                 "category_name": "my_category",
                 "parent_id": 1,
-                "content": {"color": "#AA7854"}
+                "color": "#AA7854"
             });
         
         fail_with_json(rootResponse, 400, "Invalid directory");
@@ -421,7 +421,7 @@ describe('Create a category', () => {
             .send({
                 "category_name": "my_category",
                 "parent_id": 4,
-                "content": {"color": "#AA7854"}
+                "color": "#AA7854"
             });
         
         fail_with_json(folderResponse, 400, "Invalid directory");
@@ -433,7 +433,7 @@ describe('Create a category', () => {
             .send({
                 "category_name": "my_category",
                 "parent_id": 30,
-                "content": {"color": "#AA7854"}
+                "color": "#AA7854"
             });
         
         fail_with_json(response, 400, "Invalid directory");
@@ -445,7 +445,7 @@ describe('Create a category', () => {
             .send({
                 "category_name": "my_category_223",
                 "parent_id": 6,
-                "content": {"color": "#AA754"}
+                "color": "#AA754"
             }, createCategoryUrl, app, db);
         
         fail_with_json(response, 400, "Invalid input");
@@ -455,7 +455,7 @@ describe('Create a category', () => {
         await test_utils.check_type_blank({
             "category_name": "my_category_2323",
             "parent_id": 6,
-            "content": {"color": "#AA7854"}
+            "color": "#AA7854"
         }, createCategoryUrl, 'post', app, db);
 
         // Extra key in content
@@ -464,7 +464,7 @@ describe('Create a category', () => {
             .send({
                 "category_name": "my_category_22523",
                 "parent_id": 6,
-                "content": {"color": "#AAA754", 'unrelated': 'value'}
+                "color": "#AAA754", 'unrelated': 'value'
         }, createCategoryUrl, app, db);
         
         fail_with_json(extraVal, 400, "Missing or extra body");

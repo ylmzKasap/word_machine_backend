@@ -1,65 +1,126 @@
 const directoryUtils = require('./directory');
-const { getItemInfo } = require('./item_functions');
+const { get_item_info } = require('./item_functions');
 
 
-async function addItem(pool, infObj) {
-    const { name, item_type, owner, parent, content } = infObj;
-    let { category_id } = infObj;
+async function add_root(pool, user) {
+    const queryString = `
+        WITH new_root AS (
+            INSERT INTO items
+                (owner, item_name, item_type, item_order)
+            VALUES
+                ($1, $2, $3, 0)
+            RETURNING item_id)
+        UPDATE
+            users
+        SET
+            root_id = item_id
+        FROM
+            new_root
+        WHERE
+            username = $1;  
+        `
+    await pool.query(queryString, [user, `${user}_root`, 'root_folder']);
+}
 
-    if (!category_id) {category_id = null};
-    const categoryQuery = category_id ? ` AND category_id = $7` : "AND category_id IS NULL";
+async function add_folder(pool, owner, folder_name, folder_type, parent_id) {
+    const orderSubQuery = `
+        (SELECT
+            count(*) + 1
+        FROM
+            items
+        WHERE
+            owner = $1 AND parent_id = $2 AND category_id IS NULL)`;
+    
+    const queryString = `
+        INSERT INTO items 
+            (owner, item_name, item_type, parent_id, item_order)
+        VALUES
+            ($3, $4, $5, $6, ${orderSubQuery});
+    `
+    await pool.query(queryString, [owner, parent_id, owner, folder_name, folder_type, parent_id]);
+}
+
+async function add_category(pool, owner, category_name, parent_id, color) {
+    const orderSubQuery = `
+        (SELECT
+            count(*) + 1
+        FROM
+            items
+        WHERE
+            owner = $1 AND parent_id = $2 AND category_id IS NULL)`;
+    
+    const queryString = `
+        WITH new_category AS (
+            INSERT INTO items 
+                (owner, item_name, item_type, parent_id, item_order)
+            VALUES
+                ($3, $4, 'category', $5, ${orderSubQuery})
+            RETURNING item_id)
+        INSERT INTO category_content
+            (category_key, color)
+        SELECT
+            new_category.item_id, $6
+        FROM
+            new_category;`
+        
+    await pool.query(queryString, [owner, parent_id, owner, category_name, parent_id, color]);
+}
+
+async function add_deck(pool, owner, deck_name, parent_id, wordArray, target, source, category_id) {
+    const [operator, categoryVal] = category_id ? ["=", category_id] : ["IS", "NULL"];
+    const category = category_id ? category_id : null;
+
     const orderSubQuery = `
         (SELECT count(*) + 1 FROM items
-        WHERE owner = $1 AND parent_id = $2${categoryQuery})`;
+        WHERE owner = $1 AND parent_id = $2 AND category_id ${operator} ${categoryVal})`;
+    
+    const queryString = `
+        WITH item_table AS (
+            INSERT INTO items
+                (owner, item_type, item_name, parent_id, item_order, category_id)
+            VALUES
+                ($3, 'file', $4, $5, ${orderSubQuery}, $6)
+            RETURNING item_id
+        )
+        INSERT INTO deck_content
+            (deck_id, target_language, source_language)
+        SELECT
+            item_id, $7, $8
+        FROM
+            item_table
+        RETURNING
+            deck_id;
+    `
+    const deck_id = await pool.query(queryString, [
+        owner, parent_id, owner, deck_name, parent_id, category, target, source]);
 
-    if (item_type === 'root_folder') {
-        const queryString = `
-            INSERT INTO items (owner, item_name, item_type, item_order)
-            VALUES ($1, $2, $3, 0);`
-        await pool.query(queryString, [owner, name, item_type]);
-    } 
-        
-    else if (['folder', 'file', 'category', 'thematic_folder'].includes(item_type)) {
-        const queryString = `
-            INSERT INTO items (owner, item_name, item_type, parent_id, item_order, category_id)
-            VALUES ($3, $4, $5, $6, ${orderSubQuery}, $7);`
-        const parameters = [owner, parent, owner, name, item_type, parent, category_id];
-        await pool.query(queryString, parameters);
-
-        // Add the content.
-        if (['file', 'category'].includes(item_type)) {
-            const contentQuery = `
-                SELECT item_id FROM items
-                WHERE (owner = $1
-                AND item_name = $2
-                AND parent_id = $3
-                AND item_type = $4)
-                LIMIT 1;`
-            const contentParms = [owner, name, parent, item_type];
-            const item_id = await pool.query(contentQuery, contentParms);
-
-            const content_id = item_id.rows[0].item_id;
-            await pool.query(`
-                INSERT INTO contents (content_id)
-                VALUES (${content_id});`);
-                
-            Object.keys(content).forEach(cKey => {
-                const insertQuerry =  `
-                    UPDATE contents SET ${cKey} = $1 WHERE content_id = $2`
-                const insertParams = [content[cKey], content_id];
-                pool.query(insertQuerry, insertParams)
-                .catch(err => console.log(err));
-            });
-        }
+    const wordQuery = `
+        WITH content_table AS (
+            SELECT
+                word_content_id
+            FROM
+                word_content
+            WHERE
+                ${target} = $1
+            LIMIT 1
+        )
+        INSERT INTO words
+            (media_id, deck_id, word_order)
+        SELECT
+            word_content_id, $2, $3
+        FROM
+            content_table;
+        `
+    for (let i = 1; i < wordArray.length + 1; i++) {
+        await pool.query(wordQuery, [wordArray[i-1], deck_id.rows[0].deck_id, i]);
     }
 }
 
-
-async function deleteItem(pool, owner, item_id) {
+async function delete_item(pool, owner, item_id) {
     const queryText = `
         DELETE FROM items WHERE item_id = $1;`;
 
-    const parentInfo = await getItemInfo(pool, item_id)
+    const parentInfo = await get_item_info(pool, item_id)
     .catch(() => false);
 
     if (!parentInfo) {
@@ -74,11 +135,11 @@ async function deleteItem(pool, owner, item_id) {
         return false;
     }
 
-    const orderStatus = await directoryUtils.reorderDirectory(pool, owner, parent_id);
+    const orderStatus = await directoryUtils.reorder_directory(pool, owner, parent_id);
     return !orderStatus.error;
 }
 
 
 module.exports = {
-    addItem, deleteItem
+    add_root, add_folder, add_category, add_deck, delete_item
 }

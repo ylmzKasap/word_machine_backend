@@ -11,33 +11,32 @@ const colorFilter = /^#([a-fA-F0-9]{6}|[a-fA-F0-9]{3})$/
 // Handle deck creation.
 const create_deck = async (req, res) => {
     const { username } = req.params;
-    const { deckName, content, parent_id, category_id } = req.body;
+    const { deckName, words, parent_id, category_id, target_language, source_language } = req.body;
 
     const db = req.app.get('database');
 
     // Body mismatch
-    if (test_utils.is_blank([deckName, content, parent_id, category_id])
-        || Object.keys(content).length > 1 || Object.keys(req.body).length > 4) {
+    if (test_utils.is_blank([deckName, words, parent_id, category_id])
+            || Object.keys(req.body).length > 4) {
             return res.status(400).send({"errDesc": "Missing or extra body"});
     }
     
     // Type mismatch
     if (typeof deckName !== 'string' 
-        || !test_utils.is_object(content)
+        || !Array.isArray(words)
         || typeof parent_id !== 'number'
         || (typeof category_id !== 'number' && category_id !== null)
-        || !(content.hasOwnProperty('words'))
-        || !(Array.isArray(content.words))) {
+        ) {
         return res.status(400).send({"errDesc": "Type mismatch"});
     }
 
     // Forbidden character
-    if (itemNameFilter.test(deckName) || wordNameFilter.test(content.words.join(''))) {
+    if (itemNameFilter.test(deckName) || wordNameFilter.test(words.join(''))) {
         return res.status(400).send({"errDesc": "Forbidden character"});
     }
 
     // Blank values
-    const filteredWords = content.words.filter(
+    const filteredWords = words.filter(
         word => !(test_utils.fullSpace.test(word))
     );
 
@@ -46,7 +45,7 @@ const create_deck = async (req, res) => {
     }
 
     // Prevent invalid directory
-    const dirInfo = await item_utils.getItemInfo(db, parent_id);
+    const dirInfo = await item_utils.get_item_info(db, parent_id);
     let dirError = false;
     if (dirInfo) {
         if (dirInfo.owner !== username) {
@@ -72,7 +71,7 @@ const create_deck = async (req, res) => {
 
     // Prevent invalid category
     if (category_id !== null) {
-        const categoryInfo = await item_utils.getItemInfo(db, category_id);
+        const categoryInfo = await item_utils.get_item_info(db, category_id);
         let categoryError = false;
         if (categoryInfo) {
             if (categoryInfo.owner !== username) {
@@ -92,27 +91,21 @@ const create_deck = async (req, res) => {
     }
     
     // Locate image files.
-    const imageExtensions = ['.jpg', '.png', '.PNG', '.jpeg', '.webp'];
-    const [missingFiles, foundFiles] = utils.findFiles(
-        "public/images/", filteredWords, imageExtensions);
-
-    if (missingFiles.length > 0) {
-        return res.status(400).send(
-            {"errDesc": `Images not found: ${missingFiles.join(', ')}.`});
-    }
+    const [missingImages, missingSounds] = utils.locate_words(
+        db, words, target_language);
     
     // Create deck
-    await item_crt_utils.addItem(db, {
+    await item_crt_utils._item(db, {
         'name': deckName,
         'owner': username,
         'item_type': 'file',
         'parent': parent_id,
         'category_id': category_id,
-        'content': {'words': foundFiles.join(',')}
+        'words': foundFiles.join(',')
     })
     .then(() => res.status(200).send())
     .catch(err => {
-        const description = err_utils.handleError(err.code);
+        const description = err_utils.handle_error(err.code);
         return res.status(400).send(
             description == 'Unique Violation' ? 
             {"errDesc": `Deck '${deckName}' already exists.`} : {"errDesc": description});
@@ -155,7 +148,7 @@ const create_folder = async (req, res) => {
     }
     
     // Invalid directory to create a folder
-    const dirInfo = await item_utils.getItemInfo(db, parent_id);
+    const dirInfo = await item_utils.get_item_info(db, parent_id);
     let dirError = false;
     if (dirInfo) {
         if (dirInfo.owner !== username) {
@@ -172,7 +165,7 @@ const create_folder = async (req, res) => {
         return res.status(400).send({"errDesc": "Invalid directory"});
     }
 
-    await item_crt_utils.addItem(db, {
+    await item_crt_utils.add_item(db, {
         'name': folder_name,
         'owner': username,
         'item_type': folder_type === 'thematic_folder' ? 'thematic_folder' : 'folder',
@@ -180,7 +173,7 @@ const create_folder = async (req, res) => {
     })
     .then(() => res.status(200).send())
     .catch(err => {
-        const description = err_utils.handleError(err.code);
+        const description = err_utils.handle_error(err.code);
         return res.status(400).send(
             description == 'Unique Violation' ?
             {"errDesc":  `Folder '${folder_name}' already exists.`} : {"errDesc": description});
@@ -191,20 +184,19 @@ const create_folder = async (req, res) => {
 // Handle category creation.
 const create_category = async (req, res) => {
     const { username } = req.params;
-    const { category_name, parent_id, content } = req.body;
+    const { category_name, parent_id, color } = req.body;
 
     const db = req.app.get('database');
 
     // Body values are missing or extra
-    if (test_utils.is_blank([category_name, parent_id, content]) 
-        || Object.keys(req.body).length > 3
-        || Object.keys(content).length > 1) {
+    if (test_utils.is_blank([category_name, parent_id, color]) 
+        || Object.keys(req.body).length > 3) {
             return res.status(400).send({"errDesc": "Missing or extra body"});
     }
 
     // Type mismatches
     if (typeof category_name !== 'string' || typeof parent_id !== 'number'
-        || !test_utils.is_object(content)) {
+        || typeof color !== 'string') {
             return res.status(400).send({"errDesc": "Type mismatch"});
     }
 
@@ -219,12 +211,12 @@ const create_category = async (req, res) => {
     }
 
     // Invalid color value
-    if (!colorFilter.test(content.color)) {
+    if (!colorFilter.test(color)) {
         return res.status(400).send({"errDesc": "Invalid input"});
     }
 
     // Invalid directory to create a category
-    const dirInfo = await item_utils.getItemInfo(db, parent_id);
+    const dirInfo = await item_utils.get_item_info(db, parent_id);
     let dirError = false;
     if (dirInfo) {
         if (dirInfo.owner !== username) {
@@ -241,16 +233,16 @@ const create_category = async (req, res) => {
         return res.status(400).send({"errDesc": "Invalid directory"});
     }
 
-    await item_crt_utils.addItem(db, {
+    await item_crt_utils.add_item(db, {
         'name': category_name,
         'owner': username,
         'item_type': 'category',
         'parent': parent_id,
-        'content': content
+        'color': color
     })
     .then(() => res.status(200).send())
     .catch(err => {
-        const description = err_utils.handleError(err.code);
+        const description = err_utils.handle_error(err.code);
         return res.status(400).send(
             description == 'Unique Violation' ?
             {"errDesc": `Category '${category_name}' already exists.`} : {"errDesc": description});
@@ -275,7 +267,7 @@ const delete_item = async (req, res) => {
     }
 
     // Invalid directory to delete
-    const itemInfo = await item_utils.getItemInfo(db, item_id);
+    const itemInfo = await item_utils.get_item_info(db, item_id);
     if (itemInfo) {
         if (itemInfo.owner !== username) {
             return res.status(400).send({"errDesc": 'Bad request'});
@@ -287,7 +279,7 @@ const delete_item = async (req, res) => {
         return res.status(400).send({"errDesc": 'Item does not exist anymore...'});
     }
 
-    const deleteStatus = await item_crt_utils.deleteItem(db, username, item_id);
+    const deleteStatus = await item_crt_utils.delete_item(db, username, item_id);
 
     if (!deleteStatus.error) {
         return res.status(200).send();

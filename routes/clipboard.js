@@ -3,8 +3,8 @@ const dir_utils = require('../database/db_functions/directory');
 const test_utils = require("../test/other_functions");
 const utils = require("./functions");
 
-const { addItem } = require('../database/db_functions/item_creation');
-const  { updateDirectory } = require('../database/db_functions/item_relocation');
+const { add_item } = require('../database/db_functions/item_creation');
+const  { update_directory } = require('../database/db_functions/item_relocation');
 
 module.exports = async (req, res) => {
     const { username } = req.params;
@@ -34,7 +34,7 @@ module.exports = async (req, res) => {
     }
 
     // Get copied item.
-    const itemInfo = await item_utils.getItemInfo(db, item_id);
+    const itemInfo = await item_utils.get_item_info(db, item_id);
     if (itemInfo) {
         if (itemInfo.owner !== username) {
             return res.status(400).send({"errDesc": 'Inavlid directory'});
@@ -48,7 +48,7 @@ module.exports = async (req, res) => {
     }
 
     // Get the directory the item is copied or moved into.
-    const dirInfo = await item_utils.getItemInfo(db, new_parent);
+    const dirInfo = await item_utils.get_item_info(db, new_parent);
     let dirError = false;
     if (dirInfo) {
         if (dirInfo.owner !== username) {
@@ -78,7 +78,7 @@ module.exports = async (req, res) => {
 
     let categoryError = false;
     if (category_id !== null) {
-        const categoryInfo = await item_utils.getItemInfo(db, category_id);
+        const categoryInfo = await item_utils.get_item_info(db, category_id);
         if (categoryInfo.owner !== username) {
             categoryError = true;
         }
@@ -119,7 +119,7 @@ module.exports = async (req, res) => {
     
     // Check whether a folder is copied into its own subdirectory.
     if (itemInfo.item_type === 'folder') {
-        const subtree = await dir_utils.getRecursiveTree(db, username, item_id);
+        const subtree = await dir_utils.get_recursive_tree(db, username, item_id);
         const subIds = subtree.map(item => parseInt(item.item_id));
 
         if (subIds.includes(parseInt(new_parent)) || parseInt(item_id) === parseInt(new_parent)) {
@@ -146,8 +146,8 @@ module.exports = async (req, res) => {
     }
     // Update the directory of the cut item.
     else if (action === 'cut') {
-        const newDirectory = await dir_utils.getDirectory(db, username, new_parent);
-        const categoryItems = await dir_utils.getDirectory(db, username, itemInfo.parent_id, item_id);
+        const newDirectory = await dir_utils.get_directory(db, username, new_parent);
+        const categoryItems = await dir_utils.get_directory(db, username, itemInfo.parent_id, item_id);
 
         if (utils.find_unique_violation(
             newDirectory[0], categoryItems[0], ['item_type', 'owner', 'item_name'])) {
@@ -155,7 +155,7 @@ module.exports = async (req, res) => {
                     {"errDesc": 'Paste failed: There are items with the same name'})
             }
 
-        const updateStatus = await updateDirectory(
+        const updateStatus = await update_directory(
             db, username, item_id, itemInfo.parent_id, new_parent, category_id)
 
         if (updateStatus.error) {
@@ -165,7 +165,7 @@ module.exports = async (req, res) => {
 
          // Move the category. 
         for (let item of categoryItems[0]) {
-            await item_utils.updateColumnValue(db, item.item_id, 'parent_id', new_parent);
+            await item_utils.update_column_value(db, item.item_id, 'parent_id', new_parent);
         }
     }
     return res.status(200).send();

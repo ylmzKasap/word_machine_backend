@@ -9,7 +9,7 @@ const errorCodes = {
 }
 
 
-function handleError(errorCode) {
+function handle_error(errorCode) {
     if (errorCodes.hasOwnProperty(errorCode)) {
         return errorCodes[errorCode]
     } else {
@@ -19,5 +19,5 @@ function handleError(errorCode) {
 
 module.exports = {
     errorCodes,
-    handleError
+    handle_error
 }

@@ -3,7 +3,7 @@ const setup = require('./setup');
 const roV = require('./other_functions').roV;
 
 
-setup.setupBeforeAndAfter(db);
+setup.setup_before_and_after(db);
 
 test('Create database tables', async () => {
   const tableExistsQuery = "SELECT EXISTS (SELECT relname FROM pg_class WHERE relname = $1);"

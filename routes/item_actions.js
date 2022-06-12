@@ -1,7 +1,7 @@
 const err_utils = require('../database/db_functions/index');
 const item_utils = require('../database/db_functions/item_functions');
 const dir_utils = require('../database/db_functions/directory');
-const { updateDirectory } = require('../database/db_functions/item_relocation');
+const { update_directory } = require('../database/db_functions/item_relocation');
 const test_utils = require("../test/other_functions");
 
 // Change item order in a directory.
@@ -28,7 +28,7 @@ const change_item_order = async (req, res) => {
         return res.status(400).send({"errDesc": "Blank value"});
     }
 
-    const itemInfo = await item_utils.getItemInfo(db, item_id);
+    const itemInfo = await item_utils.get_item_info(db, item_id);
     if (!itemInfo
         || itemInfo.owner !== username
         || itemInfo.item_type === 'root_folder'
@@ -40,7 +40,7 @@ const change_item_order = async (req, res) => {
     let categoryError = false;
     if (category_id !== null) {
         // Provided category must be valid.
-        var categoryInfo = await item_utils.getItemInfo(db, category_id);
+        var categoryInfo = await item_utils.get_item_info(db, category_id);
         if (!categoryInfo) {
             categoryError = true;
         }
@@ -61,7 +61,7 @@ const change_item_order = async (req, res) => {
             categoryError = true;
         }
     } else {
-        const dirInfo = await item_utils.getItemInfo(db, itemInfo.parent_id);
+        const dirInfo = await item_utils.get_item_info(db, itemInfo.parent_id);
         if (!dirInfo) {
             categoryError = true;
         } else {
@@ -91,7 +91,7 @@ const change_item_order = async (req, res) => {
         }
     }
     
-    await item_utils.updateItemOrder(
+    await item_utils.update_item_order(
         db, username, item_id, new_order, direction, itemInfo.parent_id, category_id)
         .then(() => res.status(200).send())
         .catch(() => res.status(400).send({"errDesc": "Something went wrong..."}));
@@ -120,7 +120,7 @@ const set_item_directory = async (req, res) => {
         return res.status(400).send({"errDesc": "Invalid directory"});
     }
     
-    const itemInfo = await item_utils.getItemInfo(db, item_id);
+    const itemInfo = await item_utils.get_item_info(db, item_id);
     if (!itemInfo
         || itemInfo.owner !== username
         || itemInfo.item_type === 'root_folder') {
@@ -133,7 +133,7 @@ const set_item_directory = async (req, res) => {
     let targetError = false;
     if (target_id) {
         // Moving item into a subfolder.
-        const targetInfo = await item_utils.getItemInfo(db, target_id);
+        const targetInfo = await item_utils.get_item_info(db, target_id);
         if (!targetInfo) {
             targetError = true;
         }
@@ -152,7 +152,7 @@ const set_item_directory = async (req, res) => {
         }
     } else {
         // Moving item back to the parent.
-        const parentInfo = await item_utils.getItemInfo(db, itemInfo.parent_id);
+        const parentInfo = await item_utils.get_item_info(db, itemInfo.parent_id);
 
         if (!parentInfo) {
             targetError = true;
@@ -179,7 +179,7 @@ const set_item_directory = async (req, res) => {
 
     // Cannot move item into its own subdirectory
     if (itemInfo.item_type === 'folder') {
-        const folder_tree = await dir_utils.getRecursiveTree(db, username, item_id);
+        const folder_tree = await dir_utils.get_recursive_tree(db, username, item_id);
         const treeIds = folder_tree.map(item => parseInt(item.item_id));
         if (treeIds.includes(new_target_id)) {
             return res.status(400).send(
@@ -187,13 +187,13 @@ const set_item_directory = async (req, res) => {
         }
     }
 
-    const updateStatus = await updateDirectory(
+    const updateStatus = await update_directory(
         db, username, item_id, itemInfo.parent_id, new_target_id, null);
 
     if (!updateStatus.error) {
         return res.status(200).send();
     } else {
-        const description = err_utils.handleError(updateStatus.code);
+        const description = err_utils.handle_error(updateStatus.code);
         return res.status(400).send(
             description == 'Unique Violation' ? 
             {"errDesc": `'${itemInfo.item_name}' already exists in` 
