@@ -9,7 +9,7 @@ function setup_before_and_after(db) {
         await db.end();
     });
     beforeEach(async () => {
-        await db_builder.setUp(db); 
+        await db_builder.setup(db); 
     });
     afterEach(async () => {
         await db_builder.teardown(db);

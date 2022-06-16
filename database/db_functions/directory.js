@@ -1,3 +1,5 @@
+const { group_words } = require('./other_functions');
+
 async function check_directory(pool, owner, dir_id) {
     const queryText = `
         SELECT * FROM items WHERE owner = $1
@@ -21,16 +23,58 @@ async function get_directory(pool, owner, dir_id, category_id='') {
         return [false];
     }
 
-    const queryText = `
+    const deckQuery = `
         SELECT * FROM items
-        LEFT JOIN contents ON items.item_id = contents.content_id
-        WHERE owner = $1 AND parent_id = $2${category_id && ` AND category_id = $3`};`
-    const parameters = category_id ? [owner, dir_id, category_id] : [owner, dir_id];
+        LEFT JOIN deck_content on items.item_id = deck_content.deck_key
+        WHERE parent_id = $1 AND item_type = 'deck' ${category_id && `AND category_id = $2`}
+    `
+    const deckParameters = category_id ? [dir_id, category_id] : [dir_id];
+    let allDecks = await pool.query(deckQuery, deckParameters)
+        .then(res => res.rows).catch(() => null);
+    
+    // Get all word info
+    const wordQuery = `
+        SELECT * FROM items
+            LEFT JOIN deck_content on items.item_id = deck_content.deck_key
+            LEFT JOIN words on deck_content.deck_key = words.deck_id
+            LEFT JOIN word_content on words.media_id = word_content_id
+            LEFT JOIN translations on word_content.word_content_id = translations.translation_id
+            LEFT JOIN sound_paths on word_content.word_content_id = sound_paths.sound_id
+        WHERE owner = $1 AND parent_id = $2 AND item_type = 'deck' ${category_id && `AND category_id = $3`}`
+        
+    const wordParameters = category_id ? [owner, dir_id, category_id] : [owner, dir_id];
+    const allWords = await pool.query(wordQuery, wordParameters)
+        .then(res => res.rows).catch(() => null);
+   
+    const groupedWords = group_words(allWords);
+    for (let i = 0; i < allDecks.length; i++) {
+        allDecks[i]['words'] = groupedWords[allDecks[`${i}`].item_id];    
+    }
 
-    const directory = await pool.query(queryText, parameters)
-    .catch(() => null);
+    if (category_id) {
+        return allDecks;
+    }
 
-    return directory === null ? [false] : [directory.rows, dir.info];
+    const categoryQuery = `
+        SELECT * FROM items
+            INNER JOIN category_content ON items.item_id = category_content.category_key
+        WHERE parent_id = $1
+    `
+    const allCategories = await pool.query(categoryQuery, [dir_id])
+        .then(res => res.rows).catch(() => null);
+    
+    const folderQuery = `
+        SELECT * FROM items WHERE parent_id = $1 AND item_type IN ('folder', 'thematic_folder');
+    `
+    const allFolders = await pool.query(folderQuery, [dir_id])
+        .then(res => res.rows).catch(() => null);
+    
+    if (allFolders === null || allCategories === null || allDecks === null) {
+        return [false];
+    }
+    
+    const allItems = [...allFolders, ...allCategories, ...allDecks];
+    return [allItems, dir.info];
 }
 
 

@@ -131,8 +131,8 @@ module.exports = async (req, res) => {
     const titleType = itemInfo.item_type.charAt(0).toUpperCase() + itemInfo.item_type.slice(1);
     // Insert copied item.
     if (action === 'copy') {
-        if (itemInfo.item_type !== 'file') {
-            return res.status(400).send({"errDesc": 'Can only copy a file.'});
+        if (itemInfo.item_type !== 'deck') {
+            return res.status(400).send({"errDesc": 'Can only copy a deck.'});
         }
         await addItem(db, {
             'name': itemInfo.item_name,

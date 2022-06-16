@@ -22,14 +22,30 @@ async function add_image(
                 artist_id),
         content_table AS (
             INSERT INTO word_content
-                (artist_content_id, image_path, submitted_by,
-                english, turkish, german, spanish, french, greek)
+                (artist_content_id, image_path, submitted_by)
             SELECT
                 (SELECT * FROM artist_table
-                    UNION SELECT artist_id FROM artists WHERE artist_name = $1),
-                $2, $3, ${placeholderString}
+                    UNION SELECT artist_id FROM artists WHERE artist_name = $1), $2, $3
             RETURNING
                 word_content_id, artist_content_id
+        ),
+        translation_table AS (
+            INSERT INTO translations
+                (translation_id, english, turkish, german, spanish, french, greek)
+            SELECT
+                word_content_id , ${placeholderString}
+            FROM
+                content_table
+            RETURNING
+                translation_id
+        ),
+        translation_approval_table AS (
+            INSERT INTO translation_approval
+                (approval_id)
+            SELECT
+                translation_id
+            FROM
+                translation_table
         ),
         sound_table AS (
             INSERT INTO sound_paths
@@ -57,30 +73,30 @@ async function add_image(
         [artist_name, image_path, submitted_by, reference_link, ...translations]);
 }
 
-async function add_sound(pool, image_path, language, sound_path) {
+async function add_sound(pool, translation_id, language, sound_path) {
     const queryString = `
-        WITH word_table AS (
+        WITH translation_table AS (
             SELECT
-                word_content_id, sound_id
+                translation_id, sound_id
             FROM
-                word_content
+                translations
             LEFT JOIN
                 sound_paths
             ON
-                word_content.word_content_id = sound_paths.sound_id
+                translations.translation_id = sound_paths.sound_id
             WHERE
-                image_path = $1
+                translation_id = $1
         )
         UPDATE
             sound_paths
         SET
             ${language}_sound_path = $2
         FROM
-            word_table
+            translation_table
         WHERE
-            sound_paths.sound_id = word_table.sound_id;
+            sound_paths.sound_id = translation_table.sound_id;
     `
-    await pool.query(queryString, [image_path, sound_path]);
+    await pool.query(queryString, [translation_id, sound_path]);
 }
 
 module.exports = {

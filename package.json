@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "scripts": {
     "start": "node server.js",
-    "test": "jest --runInBand --verbose --watchAll",
+    "test": "jest --runInBand --verbose --watchAll item_creation.test.js",
     "client": "cd ../frontend && npm start",
     "server": "nodemon server.js",
     "sass": "cd ../frontend/src/styling && python compile_sass.py",

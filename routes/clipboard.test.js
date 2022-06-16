@@ -7,7 +7,7 @@ const { glob } = require('../database/build_database');
 
 const test_utils = require('../test/test_functions');
 const { getItemInfo } = require('../database/db_functions/item_functions');
-const { get_file } = require('../database/db_functions/other_functions');
+const { get_item } = require('../database/db_functions/other_functions');
 const { fail_with_json, numbers_in_order, group_objects } = require('../test/test_functions');
 const { getDirectory } = require('../database/db_functions/directory');
 
@@ -17,7 +17,7 @@ const pasteUrl = `/paste/${glob.user_1}`;
 
 
 describe('Copy', () => {    
-    describe('A file', () => {
+    describe('A deck', () => {
         test('To a folder', async () => {
             const itemInfo = await getItemInfo(db, 7);
     

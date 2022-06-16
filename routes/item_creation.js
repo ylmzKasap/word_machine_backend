@@ -11,36 +11,41 @@ const colorFilter = /^#([a-fA-F0-9]{6}|[a-fA-F0-9]{3})$/
 // Handle deck creation.
 const create_deck = async (req, res) => {
     const { username } = req.params;
-    const { deckName, words, parent_id, category_id, target_language, source_language } = req.body;
+    const { deckName, parent_id, wordArray, target_language, source_language, category_id } = req.body;
 
     const db = req.app.get('database');
 
     // Body mismatch
-    if (test_utils.is_blank([deckName, words, parent_id, category_id])
-            || Object.keys(req.body).length > 4) {
+    if (test_utils.does_not_exist(
+            [deckName, parent_id, wordArray, target_language, source_language, category_id])
+            || Object.keys(req.body).length > 6) {
             return res.status(400).send({"errDesc": "Missing or extra body"});
     }
     
     // Type mismatch
     if (typeof deckName !== 'string' 
-        || !Array.isArray(words)
-        || typeof parent_id !== 'number'
-        || (typeof category_id !== 'number' && category_id !== null)
+        || !Array.isArray(wordArray)
+        || !wordArray.every(w => typeof w === 'string')
+        || typeof target_language !== 'string'
+        || typeof source_language !== 'string'
+        || typeof parent_id !== 'string'
+        || (typeof category_id !== 'string' && category_id !== null)
         ) {
         return res.status(400).send({"errDesc": "Type mismatch"});
     }
 
     // Forbidden character
-    if (itemNameFilter.test(deckName) || wordNameFilter.test(words.join(''))) {
+    if (itemNameFilter.test(deckName) || wordNameFilter.test(wordArray.join(''))) {
         return res.status(400).send({"errDesc": "Forbidden character"});
     }
 
     // Blank values
-    const filteredWords = words.filter(
+    const filteredWords = wordArray.filter(
         word => !(test_utils.fullSpace.test(word))
     );
 
-    if (filteredWords.length === 0 || test_utils.fullSpace.test(deckName)) {
+    if (filteredWords.length === 0 ||
+        test_utils.is_blank([deckName, parent_id, target_language, source_language, category_id])) {
         return res.status(400).send({"errDesc": "Blank value"});
     }
 
@@ -89,20 +94,30 @@ const create_deck = async (req, res) => {
             return res.status(400).send({"errDesc": "Invalid category"});
         } 
     }
+
+    // Language is not supported
+    if ((!test_utils.availableLanguages.includes(target_language)
+        || !test_utils.availableLanguages.includes(source_language))
+        || target_language === source_language) {
+            return res.status(400).send({"errDesc": "Invalid language"});
+        }
     
     // Locate image files.
-    const [missingImages, missingSounds] = utils.locate_words(
-        db, words, target_language);
+    const [missingImages, missingSounds] = await utils.locate_words(
+        db, wordArray, target_language);
+
+    if (missingImages.length > 0 || missingSounds.length > 0) {
+        return res.status(400).send({
+            "errDesc": "Some files could not be found",
+            "images": missingImages,
+            "sounds": missingSounds
+        });
+    }
     
     // Create deck
-    await item_crt_utils._item(db, {
-        'name': deckName,
-        'owner': username,
-        'item_type': 'file',
-        'parent': parent_id,
-        'category_id': category_id,
-        'words': foundFiles.join(',')
-    })
+    await item_crt_utils.add_deck(db, 
+        username, deckName, parent_id, wordArray, target_language, source_language, category_id
+        )
     .then(() => res.status(200).send())
     .catch(err => {
         const description = err_utils.handle_error(err.code);
@@ -121,24 +136,23 @@ const create_folder = async (req, res) => {
     const db = req.app.get('database');
 
     // Body values are missing or extra
-    if (test_utils.is_blank([folder_name, parent_id, folder_type]) 
+    if (test_utils.does_not_exist([folder_name, parent_id, folder_type]) 
         || Object.keys(req.body).length > 3) {
             return res.status(400).send({"errDesc": "Missing or extra body"});
     }
 
     // Type mismatches
-    if (!([typeof folder_name, typeof folder_type].every(v => v === "string"))
-        || typeof parent_id !== 'number') {
+    if (!([folder_name, folder_type, parent_id].every(v => typeof v === "string"))) {
             return res.status(400).send({"errDesc": "Type mismatch"});
     }
 
-    // Blank folder name
-    if (test_utils.fullSpace.test(folder_name) || test_utils.fullSpace.test(folder_type)) {
+    // Blank items
+    if (test_utils.is_blank([folder_name, folder_type, parent_id])) {
         return res.status(400).send({"errDesc": "Blank value"});
     }
     
     // Folder type is invalid
-    if (!(['regular_folder', 'thematic_folder'].includes(folder_type))) {
+    if (!(['folder', 'thematic_folder'].includes(folder_type))) {
         return res.status(400).send({"errDesc": "Bad request"});
     }
 
@@ -165,12 +179,7 @@ const create_folder = async (req, res) => {
         return res.status(400).send({"errDesc": "Invalid directory"});
     }
 
-    await item_crt_utils.add_item(db, {
-        'name': folder_name,
-        'owner': username,
-        'item_type': folder_type === 'thematic_folder' ? 'thematic_folder' : 'folder',
-        'parent': parent_id,
-    })
+    await item_crt_utils.add_folder(db, username, folder_name, folder_type, parent_id)
     .then(() => res.status(200).send())
     .catch(err => {
         const description = err_utils.handle_error(err.code);
@@ -184,20 +193,20 @@ const create_folder = async (req, res) => {
 // Handle category creation.
 const create_category = async (req, res) => {
     const { username } = req.params;
-    const { category_name, parent_id, color } = req.body;
+    const { category_name, parent_id, color, target_language, source_language } = req.body;
 
     const db = req.app.get('database');
 
     // Body values are missing or extra
-    if (test_utils.is_blank([category_name, parent_id, color]) 
-        || Object.keys(req.body).length > 3) {
+    if (test_utils.does_not_exist([category_name, parent_id, color, target_language, source_language]) 
+        || Object.keys(req.body).length > 5) {
             return res.status(400).send({"errDesc": "Missing or extra body"});
     }
 
     // Type mismatches
-    if (typeof category_name !== 'string' || typeof parent_id !== 'number'
-        || typeof color !== 'string') {
-            return res.status(400).send({"errDesc": "Type mismatch"});
+    if (!([category_name, parent_id, color, target_language, source_language]
+        .every(v => typeof v === "string"))) {
+        return res.status(400).send({"errDesc": "Type mismatch"});
     }
 
     // Forbidden characters
@@ -206,7 +215,7 @@ const create_category = async (req, res) => {
     }
 
     // Blank category name
-    if (test_utils.fullSpace.test(category_name)) {
+    if (test_utils.is_blank([category_name, parent_id, color, target_language, source_language])) {
         return res.status(400).send({"errDesc": "Blank value"});
     }
 
@@ -214,6 +223,13 @@ const create_category = async (req, res) => {
     if (!colorFilter.test(color)) {
         return res.status(400).send({"errDesc": "Invalid input"});
     }
+
+    // Language is not supported
+    if ((!test_utils.availableLanguages.includes(target_language)
+        || !test_utils.availableLanguages.includes(source_language))
+        || target_language === source_language) {
+            return res.status(400).send({"errDesc": "Invalid language"});
+        }
 
     // Invalid directory to create a category
     const dirInfo = await item_utils.get_item_info(db, parent_id);
@@ -233,13 +249,8 @@ const create_category = async (req, res) => {
         return res.status(400).send({"errDesc": "Invalid directory"});
     }
 
-    await item_crt_utils.add_item(db, {
-        'name': category_name,
-        'owner': username,
-        'item_type': 'category',
-        'parent': parent_id,
-        'color': color
-    })
+    await item_crt_utils.add_category(
+        db, username, category_name, parent_id, color, target_language, source_language)
     .then(() => res.status(200).send())
     .catch(err => {
         const description = err_utils.handle_error(err.code);
@@ -250,7 +261,7 @@ const create_category = async (req, res) => {
 };
 
 
-// Delete File, Folder or Category.
+// Delete Deck, Folder or Category.
 const delete_item = async (req, res) => {
     const { username } = req.params;
     const { item_id } = req.body;

@@ -7,8 +7,8 @@ const serve_user = async (req, res) => {
     const { username, directory_id } = req.params;
 
     const db = req.app.get('database');
-    const info = await user_utils.get_user_info(db, username);
 
+    const info = await user_utils.get_user_info(db, username);
     const dirId = directory_id === 'home' ? await dir_utils.get_root(db, username) : directory_id;
     
     if (info) {
@@ -34,7 +34,7 @@ const serve_item = async (req, res) => {
     const { username, directory_id, item_id } = req.params;
     
     const db = req.app.get('database');
-    const pathExists = await item_utils.check_file_path(db, username, directory_id, item_id);
+    const pathExists = await item_utils.check_deck_path(db, username, directory_id, item_id);
 
     if (!pathExists) {
         return res.status(404).send({"errDesc": "Item not found"});

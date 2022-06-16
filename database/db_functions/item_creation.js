@@ -40,7 +40,9 @@ async function add_folder(pool, owner, folder_name, folder_type, parent_id) {
     await pool.query(queryString, [owner, parent_id, owner, folder_name, folder_type, parent_id]);
 }
 
-async function add_category(pool, owner, category_name, parent_id, color) {
+async function add_category(pool, owner, category_name, parent_id, color, target, source) {
+    const sourceL = source ? source : null;
+
     const orderSubQuery = `
         (SELECT
             count(*) + 1
@@ -57,19 +59,38 @@ async function add_category(pool, owner, category_name, parent_id, color) {
                 ($3, $4, 'category', $5, ${orderSubQuery})
             RETURNING item_id)
         INSERT INTO category_content
-            (category_key, color)
+            (category_key, color, category_target_language, category_source_language)
         SELECT
-            new_category.item_id, $6
+            new_category.item_id, $6, $7, $8
         FROM
             new_category;`
         
-    await pool.query(queryString, [owner, parent_id, owner, category_name, parent_id, color]);
+    await pool.query(queryString, [owner, parent_id, owner, category_name, parent_id, color, target, sourceL]);
 }
 
 async function add_deck(pool, owner, deck_name, parent_id, wordArray, target, source, category_id) {
     const [operator, categoryVal] = category_id ? ["=", category_id] : ["IS", "NULL"];
     const category = category_id ? category_id : null;
 
+    // Use category's language info if category_id exists.
+    let [targetLang, sourceLang] = [target, source];
+    if (category_id) {
+        const languageQuery = `
+        SELECT
+            category_target_language, category_source_language
+        FROM
+            category_content
+        WHERE
+            category_key = $1
+    `
+    const categoryLanguages = await pool.query(languageQuery, [category_id])
+        .then(res => res.rows[0]).catch(err => console.log(err));
+
+    targetLang = categoryLanguages.category_target_language;
+    sourceLang = categoryLanguages.category_source_language;
+    } 
+
+    // Insert the deck.
     const orderSubQuery = `
         (SELECT count(*) + 1 FROM items
         WHERE owner = $1 AND parent_id = $2 AND category_id ${operator} ${categoryVal})`;
@@ -79,40 +100,41 @@ async function add_deck(pool, owner, deck_name, parent_id, wordArray, target, so
             INSERT INTO items
                 (owner, item_type, item_name, parent_id, item_order, category_id)
             VALUES
-                ($3, 'file', $4, $5, ${orderSubQuery}, $6)
+                ($3, 'deck', $4, $5, ${orderSubQuery}, $6)
             RETURNING item_id
         )
         INSERT INTO deck_content
-            (deck_id, target_language, source_language)
+            (deck_key, target_language, source_language)
         SELECT
             item_id, $7, $8
         FROM
             item_table
         RETURNING
-            deck_id;
+            deck_key;
     `
-    const deck_id = await pool.query(queryString, [
-        owner, parent_id, owner, deck_name, parent_id, category, target, source]);
+    const deck_key = await pool.query(queryString, [
+        owner, parent_id, owner, deck_name, parent_id, category, targetLang, sourceLang]);
 
+    // Insert the words.
     const wordQuery = `
-        WITH content_table AS (
+        WITH translation_table AS (
             SELECT
-                word_content_id
+                translation_id
             FROM
-                word_content
+                translations
             WHERE
-                ${target} = $1
+                ${targetLang} = $1
             LIMIT 1
         )
         INSERT INTO words
             (media_id, deck_id, word_order)
         SELECT
-            word_content_id, $2, $3
+            translation_id, $2, $3
         FROM
-            content_table;
+            translation_table;
         `
     for (let i = 1; i < wordArray.length + 1; i++) {
-        await pool.query(wordQuery, [wordArray[i-1], deck_id.rows[0].deck_id, i]);
+        await pool.query(wordQuery, [wordArray[i-1], deck_key.rows[0].deck_key, i]);
     }
 }
 
