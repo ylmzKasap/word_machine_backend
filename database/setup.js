@@ -1,4 +1,4 @@
-const db_builder = require('../build_database');
+const db_builder = require('./build_database');
 
 
 function setup_before_and_after(db) {

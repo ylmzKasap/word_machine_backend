@@ -2,12 +2,12 @@ const app = require('../app');
 const request = require('supertest');
 
 const db = require('../database/test_database');
-const setup = require('../database/db_functions/setup');
+const setup = require('../database/setup');
 const { glob } = require('../database/build_database');
 const { fail_with_json } = require('../test/test_functions');
 
 
-setup.setupBeforeAndAfter(db);
+setup.setup_before_and_after(db);
 
 
 describe('Serve user info', () => {
@@ -52,7 +52,7 @@ describe('Serve user info', () => {
         // Serve parent info
         expect(response.body[1].owner).toEqual(glob.user_1);
         expect(response.body[1].item_id).toEqual("22");
-        expect(response.body[1].parent_id).toBe(4);
+        expect(response.body[1].parent_id).toEqual("4");
         expect(response.body[1].item_type).toEqual("folder");
     });
 
@@ -76,25 +76,30 @@ describe('Serve item info', () => {
         
         expect(response.headers["content-type"]).toMatch(/json/);
         expect(response.status).toEqual(200);
-        expect(response.body.item_id).toEqual("7");  
-        expect(response.body.words).toEqual("roof.png,square.png,elevator.png,sock.png");   
+        expect(response.body.words[0].deck_id).toEqual("7");  
+        expect(response.body.words[0].image_path).toEqual("square_2.png");
+        expect(response.body.words[0].english).toEqual("square");
+        expect(response.body.words[1].english_sound_path).toEqual("palace.mp3");
+        expect(response.body.words[2].word_order).toEqual(3);
+        expect(response.body.target_language).toEqual("english");
+        expect(response.body.source_language).toEqual("turkish");
     });
 
     test('Fail on existing user, non-existing item', async () => {
         const response = await request(app(db)).get(`/u/${glob.user_1}/1/item/202`);
         
-        fail_with_json(response, 404, "Item not found");
+        fail_with_json(response, 404, "Deck not found");
     });
 
     test("Fail on existing user, someone else's item", async () => {
         const response = await request(app(db)).get(`/u/${glob.user_1}/2/item/35`);
         
-        fail_with_json(response, 404, "Item not found");
+        fail_with_json(response, 404, "Deck not found");
     });
 
     test('Fail on non-existing user, existing item', async () => {
         const response = await request(app(db)).get(`/u/random_user/1/item/7`);
         
-        fail_with_json(response, 404, "Item not found");
+        fail_with_json(response, 404, "Deck not found");
     });
 });

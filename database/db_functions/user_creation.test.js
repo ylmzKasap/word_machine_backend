@@ -1,8 +1,8 @@
 const db = require('../test_database');
-const  { roV } = require('./other_functions');
+const  { roV } = require('./common/functions');
 
 const user_utils = require('./user_creation');
-const setup = require('./setup');
+const setup = require('../setup');
 const { glob } = require('../build_database');
 
 

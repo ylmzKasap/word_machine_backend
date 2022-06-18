@@ -1,4 +1,4 @@
-const { group_words } = require('./other_functions');
+const { group_words } = require('./common/functions');
 
 async function check_directory(pool, owner, dir_id) {
     const queryText = `

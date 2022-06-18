@@ -1,6 +1,6 @@
 const item_crt_utils = require('../database/db_functions/item_creation');
 const item_utils = require('../database/db_functions/item_functions');
-const err_utils = require('../database/db_functions/index');
+const err_utils = require('../database/db_functions/common/index');
 const utils = require("./functions");
 const test_utils = require("../test/other_functions");
 
@@ -44,8 +44,7 @@ const create_deck = async (req, res) => {
         word => !(test_utils.fullSpace.test(word))
     );
 
-    if (filteredWords.length === 0 ||
-        test_utils.is_blank([deckName, parent_id, target_language, source_language, category_id])) {
+    if (filteredWords.length === 0) {
         return res.status(400).send({"errDesc": "Blank value"});
     }
 
@@ -145,11 +144,6 @@ const create_folder = async (req, res) => {
     if (!([folder_name, folder_type, parent_id].every(v => typeof v === "string"))) {
             return res.status(400).send({"errDesc": "Type mismatch"});
     }
-
-    // Blank items
-    if (test_utils.is_blank([folder_name, folder_type, parent_id])) {
-        return res.status(400).send({"errDesc": "Blank value"});
-    }
     
     // Folder type is invalid
     if (!(['folder', 'thematic_folder'].includes(folder_type))) {
@@ -214,11 +208,6 @@ const create_category = async (req, res) => {
         return res.status(400).send({"errDesc": "Forbidden character"});
     }
 
-    // Blank category name
-    if (test_utils.is_blank([category_name, parent_id, color, target_language, source_language])) {
-        return res.status(400).send({"errDesc": "Blank value"});
-    }
-
     // Invalid color value
     if (!colorFilter.test(color)) {
         return res.status(400).send({"errDesc": "Invalid input"});
@@ -268,12 +257,12 @@ const delete_item = async (req, res) => {
     const db = req.app.get('database');
 
     // Body values are missing or extra
-    if (test_utils.is_blank([item_id]) || Object.keys(req.body).length > 1) {
+    if (test_utils.does_not_exist([item_id]) || Object.keys(req.body).length > 1) {
         return res.status(400).send({"errDesc": "Missing or extra body"});
     }
 
     // Type mismatch
-    if (typeof item_id !== 'number') {
+    if (typeof item_id !== 'string') {
         return res.status(400).send({"errDesc": "Type mismatch"});
     }
 

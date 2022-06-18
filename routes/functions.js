@@ -37,6 +37,10 @@ function find_unique_violation(firstObjArray, secondObjArray, columns) {
         return values;
     }
 
+    if (firstObjArray.length === 0 || secondObjArray === 0) {
+        return false;
+    }
+
     const firstDirValues = firstObjArray.map(obj => getValues(obj));
     const secondDirValues = secondObjArray.map(obj => getValues(obj));
 

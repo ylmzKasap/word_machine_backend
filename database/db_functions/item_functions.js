@@ -1,4 +1,6 @@
 const directoryUtils = require('./directory');
+const queryUtils = require('./common/queries');
+const { group_words } = require('./common/functions');
 
 
 async function get_item_info(pool, item_id) {
@@ -26,6 +28,23 @@ async function get_item_info(pool, item_id) {
     return detailedInfo ? detailedInfo : false;
 }
 
+async function get_deck_info(pool, item_id) {
+    const deckInfo = await pool.query(queryUtils.deckQuery, [item_id])
+        .then(res => res.rows.length > 0 ? res.rows : false).catch(() => false);
+
+    if (!deckInfo) {
+        return false;
+    }
+
+    const groupedWords = group_words(deckInfo);
+    const deckInfoObj = {
+        words: groupedWords[deckInfo[0].item_id],
+        target_language: deckInfo[0].target_language,
+        source_language: deckInfo[0].source_language
+    }
+
+    return deckInfoObj;    
+}
 
 async function check_deck_path(pool, owner, dir_id, item_id) {
     const queryText = `
@@ -36,9 +55,9 @@ async function check_deck_path(pool, owner, dir_id, item_id) {
     `
 
     const checkPath = await pool.query(queryText, [owner, item_id, dir_id])
-    .then((res) => res.rows[0]).catch(() => false);
+    .then(res => res.rows.length > 0).catch(() => false);
 
-    return checkPath ? true : false;
+    return checkPath;
 }
 
 
@@ -73,5 +92,5 @@ async function update_item_order(pool, owner, item_id, new_order, direction, par
 
 
 module.exports = {
-    get_item_info, check_deck_path, update_column_value, update_item_order
+    get_item_info, check_deck_path, update_column_value, update_item_order, get_deck_info
 }

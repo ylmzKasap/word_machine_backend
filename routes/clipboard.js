@@ -3,7 +3,7 @@ const dir_utils = require('../database/db_functions/directory');
 const test_utils = require("../test/other_functions");
 const utils = require("./functions");
 
-const { add_item } = require('../database/db_functions/item_creation');
+const { add_item, add_deck } = require('../database/db_functions/item_creation');
 const  { update_directory } = require('../database/db_functions/item_relocation');
 
 module.exports = async (req, res) => {
@@ -13,15 +13,14 @@ module.exports = async (req, res) => {
     const db = req.app.get('database');
 
     // Body mismatch
-    if (test_utils.is_blank([item_id, new_parent, category_id, action]) 
+    if (test_utils.does_not_exist([item_id, new_parent, category_id, action]) 
         || Object.keys(req.body).length > 4) {
             return res.status(400).send({"errDesc": "Missing or extra body"});
     };
 
     // Type mismatch
-    if (typeof item_id !== 'number' || typeof new_parent !== 'number'
-        || typeof action !== 'string'
-        || (category_id !== null && typeof category_id !== 'number')) {
+    if ([item_id, new_parent, action].some(x => typeof x !== 'string')
+        || (category_id !== null && typeof category_id !== 'string')) {
             return res.status(400).send({"errDesc": "Type mismatch"});
     };
 
@@ -120,9 +119,9 @@ module.exports = async (req, res) => {
     // Check whether a folder is copied into its own subdirectory.
     if (itemInfo.item_type === 'folder') {
         const subtree = await dir_utils.get_recursive_tree(db, username, item_id);
-        const subIds = subtree.map(item => parseInt(item.item_id));
+        const subIds = subtree.map(item => item.item_id);
 
-        if (subIds.includes(parseInt(new_parent)) || parseInt(item_id) === parseInt(new_parent)) {
+        if (subIds.includes(new_parent) || item_id === new_parent) {
             return res.status(400).send(
                 {"errDesc": `This directory is a subdirectory of '${itemInfo.item_name}'.`});
         }
@@ -134,27 +133,27 @@ module.exports = async (req, res) => {
         if (itemInfo.item_type !== 'deck') {
             return res.status(400).send({"errDesc": 'Can only copy a deck.'});
         }
-        await addItem(db, {
-            'name': itemInfo.item_name,
-            'item_type': itemInfo.item_type,
-            'category_id': category_id,
-            'owner': username,
-            'parent': new_parent,
-            'content': {'words': itemInfo.words}})
-            .catch(() => res.status(400).send(
+        const deckInfo = await item_utils.get_deck_info(db, item_id);
+        await add_deck(db, username, itemInfo.item_name, new_parent, deckInfo.words,
+            deckInfo.target_language, deckInfo.source_language, category_id)
+            .catch((err) => res.status(400).send(
                 {"errDesc": `${titleType} '${itemInfo.item_name}' already exists in the directory.`}));
     }
     // Update the directory of the cut item.
     else if (action === 'cut') {
         const newDirectory = await dir_utils.get_directory(db, username, new_parent);
-        const categoryItems = await dir_utils.get_directory(db, username, itemInfo.parent_id, item_id);
+        let categoryItems;
 
-        if (utils.find_unique_violation(
-            newDirectory[0], categoryItems[0], ['item_type', 'owner', 'item_name'])) {
-                return  res.status(400).send(
-                    {"errDesc": 'Paste failed: There are items with the same name'})
-            }
+        if (itemInfo.item_type === 'category') {
+            categoryItems = await dir_utils.get_directory(db, username, itemInfo.parent_id, item_id);
 
+            if (utils.find_unique_violation(
+                newDirectory[0], categoryItems, ['item_type', 'owner', 'item_name'])) {
+                    return  res.status(400).send(
+                        {"errDesc": 'Paste failed: There are items with the same name'})
+                }
+        }
+        
         const updateStatus = await update_directory(
             db, username, item_id, itemInfo.parent_id, new_parent, category_id)
 
@@ -163,10 +162,13 @@ module.exports = async (req, res) => {
                 {"errDesc": `${titleType} '${itemInfo.item_name}' already exists in the directory.`})
         }
 
-         // Move the category. 
-        for (let item of categoryItems[0]) {
-            await item_utils.update_column_value(db, item.item_id, 'parent_id', new_parent);
+        if (itemInfo.item_type === 'category') {
+            // Move the category items. 
+            for (let item of categoryItems) {
+                await item_utils.update_column_value(db, item.item_id, 'parent_id', new_parent);
+            }
         }
+         
     }
     return res.status(200).send();
 };

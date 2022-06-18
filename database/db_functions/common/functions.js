@@ -32,8 +32,7 @@ function get_word_keys(word) {
     [word.target_language]: word[word.target_language],
     [word.source_language ? word.source_language : 'source_translation']: word[word.source_language],
     [`${word.target_language}_sound_path`]: word[`${word.target_language}_sound_path`],
-    artist_id: word.artist_id,
-    artist_name: word.artist_name
+    artist_id: word.artist_content_id
   }
 }
 

@@ -95,6 +95,9 @@ async function setup(db) {
     await item_utils.add_deck(db, glob.user_2, 'deck_1', 2, words, 'english', 'turkish');
     await item_utils.add_deck(db, glob.user_2, 'deck_1', 29, words, 'english', 'german');
     await item_utils.add_folder(db, glob.user_2, 'folder_1', 'folder', 28);
+
+    // Later stuff for testing
+    await item_utils.add_category(db, glob.user_1, 'category_33', 26, '#BBB', 'german', 'english');
 }
 
 

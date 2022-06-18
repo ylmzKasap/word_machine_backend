@@ -6,6 +6,7 @@ const user_info = require("./routes/user_info");
 const item_creation = require("./routes/item_creation");
 const item_actions = require("./routes/item_actions");
 const clipboard = require("./routes/clipboard");
+const { fullSpace, is_object, is_blank } = require('./test/other_functions');
 
 
 module.exports = (database) => {
@@ -19,6 +20,17 @@ module.exports = (database) => {
     // Serve media files.
     app.use("/media", express.static(path.join(__dirname, "public/images")));
     app.use("/media", express.static(path.join(__dirname, "public/sounds")));
+
+    // Check body for invalid input
+    app.use((req, res, next) => {
+        if (!is_object(req.body)) {
+            return res.status(400).send({"errDesc": "Invalid request"});
+        }
+        if (is_blank(Object.values(req.body)))  {
+            return res.status(400).send({"errDesc": "Blank value"});
+        }
+        next()
+      })
 
     /* Routing */
 

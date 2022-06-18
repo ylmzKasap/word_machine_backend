@@ -1,4 +1,4 @@
-const err_utils = require('../database/db_functions/index');
+const err_utils = require('../database/db_functions/common/index');
 const item_utils = require('../database/db_functions/item_functions');
 const dir_utils = require('../database/db_functions/directory');
 const { update_directory } = require('../database/db_functions/item_relocation');
@@ -12,20 +12,15 @@ const change_item_order = async (req, res) => {
     const db = req.app.get('database');
 
     // Body mismatch
-    if (test_utils.is_blank([item_id, new_order, direction, category_id])
+    if (test_utils.does_not_exist([item_id, new_order, direction, category_id])
         || Object.keys(req.body).length > 4) {
         return res.status(400).send({"errDesc": "Missing or extra body"});
     };
 
     // Type mismatch
-    if (typeof item_id !== 'number' || typeof new_order !== 'number'
-        || typeof direction !== 'string'
-        || (category_id !== null && typeof category_id !== 'number')) {
+    if (([item_id, new_order, direction].some(x => typeof x !== 'string'))
+        || (category_id !== null && typeof category_id !== 'string')) {
             return res.status(400).send({"errDesc": "Type mismatch"});
-    }
-
-    if (test_utils.fullSpace.test(direction)) {
-        return res.status(400).send({"errDesc": "Blank value"});
     }
 
     const itemInfo = await item_utils.get_item_info(db, item_id);
@@ -79,9 +74,9 @@ const change_item_order = async (req, res) => {
     }
 
     // Item moved to the same place.
-    if (parseInt(itemInfo.item_order) === new_order) {
+    if (itemInfo.item_order === new_order) {
         if (category_id !== null) {
-            if (parseInt(itemInfo.category_id) === category_id) {
+            if (itemInfo.category_id === category_id) {
                 return res.status(200).send({"errDesc": 'No change needed'});
             }
         } else {
@@ -106,12 +101,12 @@ const set_item_directory = async (req, res) => {
     const db = req.app.get('database');
 
     // Body mismatch
-    if (test_utils.is_blank([item_id, target_id]) || Object.keys(req.body).length > 2) {
+    if (test_utils.does_not_exist([item_id, target_id]) || Object.keys(req.body).length > 2) {
         return res.status(400).send({"errDesc": "Missing or extra body"});
     };
 
     // Type mismatch
-    if (typeof item_id !== 'number' || (target_id !== null && typeof target_id !== 'number')) {
+    if (typeof item_id !== 'string' || (target_id !== null && typeof target_id !== 'string')) {
         return res.status(400).send({"errDesc": "Type mismatch"});
     }
 
@@ -180,7 +175,7 @@ const set_item_directory = async (req, res) => {
     // Cannot move item into its own subdirectory
     if (itemInfo.item_type === 'folder') {
         const folder_tree = await dir_utils.get_recursive_tree(db, username, item_id);
-        const treeIds = folder_tree.map(item => parseInt(item.item_id));
+        const treeIds = folder_tree.map(item => item.item_id);
         if (treeIds.includes(new_target_id)) {
             return res.status(400).send(
                 {"errDesc": `This directory is a subdirectory of '${itemInfo.item_name}'`});

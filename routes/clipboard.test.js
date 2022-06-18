@@ -2,82 +2,89 @@ const app = require('../app');
 const request = require('supertest');
 
 const db = require('../database/test_database');
-const setup = require('../database/db_functions/setup');
+const setup = require('../database/setup');
 const { glob } = require('../database/build_database');
 
 const test_utils = require('../test/test_functions');
-const { getItemInfo } = require('../database/db_functions/item_functions');
-const { get_item } = require('../database/db_functions/other_functions');
+const { get_item_info, get_deck_info } = require('../database/db_functions/item_functions');
 const { fail_with_json, numbers_in_order, group_objects } = require('../test/test_functions');
-const { getDirectory } = require('../database/db_functions/directory');
+const { get_directory } = require('../database/db_functions/directory');
+const { get_item } = require('../database/db_functions/common/functions');
 
 
-setup.setupBeforeAndAfter(db);
+setup.setup_before_and_after(db);
 const pasteUrl = `/paste/${glob.user_1}`;
 
 
-describe('Copy', () => {    
+describe('Copy', () => {
     describe('A deck', () => {
         test('To a folder', async () => {
-            const itemInfo = await getItemInfo(db, 7);
+            const itemInfo = await get_item_info(db, "7");
     
             const response = await request(app(db))
             .put(pasteUrl)
             .send({
-                item_id: 7,
-                new_parent: 3,
+                item_id: "7",
+                new_parent: "3",
                 category_id: null,
                 action: 'copy'
             }); 
     
             expect(response.status).toEqual(200);
     
-            const copiedItem = await get_file(db, itemInfo.item_name, 'file', 3);
-            expect(copiedItem.item_id).toEqual("38");
-            expect(copiedItem.parent_id).toEqual(3);
-            expect(copiedItem.category_id).toBeNull();
+            const copiedDeck = await get_item(db, itemInfo.item_name, 'deck', 3);
+            const copiedDeckInfo = await get_deck_info(db, 7);
+
+            expect(copiedDeck.item_id).toEqual("39");
+            expect(copiedDeck.parent_id).toEqual("3");
+            expect(copiedDeck.category_id).toBeNull();
+            expect(copiedDeckInfo.target_language).toEqual('english');
+            expect(copiedDeckInfo.source_language).toEqual('turkish');
+            expect(copiedDeckInfo.words[0].english).toEqual('square');
+            expect(copiedDeckInfo.words[1].turkish).toEqual('saray');
+            expect(copiedDeckInfo.words[2].artist_id).toEqual('4');
     
-            const prevItem = await get_file(db, itemInfo.item_name, 'file', 1);
+            const prevItem = await get_item(db, itemInfo.item_name, 'deck', 1);
             expect(prevItem).not.toBeNull();
         });
 
         test('To a thematic folder', async () => {
-            const itemInfo = await getItemInfo(db, 27);
+            const itemInfo = await get_item_info(db, 27);
     
             const response = await request(app(db))
             .put(pasteUrl)
             .send({
-                item_id: 27,
-                new_parent: 6,
-                category_id: 10,
-                action: 'copy'
+                item_id: "27",
+                new_parent: "6",
+                category_id: "10",
+                action: "copy"
             }); 
     
             expect(response.status).toEqual(200);
     
-            const copiedItem = await get_file(db, itemInfo.item_name, 'file', 6);
-            expect(copiedItem.item_id).toEqual("38");
-            expect(copiedItem.parent_id).toEqual(6);
-            expect(copiedItem.category_id).toEqual("10");
+            const copiedDeck = await get_item(db, itemInfo.item_name, 'deck', 6);
+            expect(copiedDeck.item_id).toEqual("39");
+            expect(copiedDeck.parent_id).toEqual("6");
+            expect(copiedDeck.category_id).toEqual("10");
         });
 
         test('Outside of a thematic folder', async () => {
-            const itemInfo = await getItemInfo(db, 19);
+            const itemInfo = await get_item_info(db, 19);
     
             const response = await request(app(db))
             .put(pasteUrl)
             .send({
-                item_id: 19,
-                new_parent: 1,
+                item_id: "19",
+                new_parent: "1",
                 category_id: null,
-                action: 'copy'
+                action: "copy"
             }); 
     
             expect(response.status).toEqual(200);
     
-            const copiedItem = await get_file(db, itemInfo.item_name, 'file', 1);
-            expect(copiedItem.item_id).toEqual("38");
-            expect(copiedItem.parent_id).toEqual(1);
+            const copiedItem = await get_item(db, itemInfo.item_name, "deck", 1);
+            expect(copiedItem.item_id).toEqual("39");
+            expect(copiedItem.parent_id).toEqual("1");
             expect(copiedItem.category_id).toBeNull();
         });
 
@@ -85,26 +92,26 @@ describe('Copy', () => {
             const response = await request(app(db))
             .put(pasteUrl)
             .send({
-                item_id: 12,
-                new_parent: 1,
+                item_id: "12",
+                new_parent: "1",
                 category_id: null,
                 action: 'copy'
             }); 
     
-            fail_with_json(response, 400, "File 'deck_1' already exists in the directory.");
+            fail_with_json(response, 400, "Deck 'deck_1' already exists in the directory.");
         });
 
         test('Should not copy anything except a file', async () => {
             const response = await request(app(db))
             .put(pasteUrl)
             .send({
-                item_id: 8,
-                new_parent: 23,
+                item_id: "8",
+                new_parent: "23",
                 category_id: null,
                 action: 'copy'
             }); 
     
-            fail_with_json(response, 400, "Can only copy a file.");
+            fail_with_json(response, 400, "Can only copy a deck.");
         });
     });
 });
@@ -112,52 +119,52 @@ describe('Copy', () => {
 describe('Cut', () => {
     describe('A file', () => {
         test("Into a folder", async () =>{
-            const itemInfo = await getItemInfo(db, 7);
+            const itemInfo = await get_item_info(db, 7);
         
             const response = await request(app(db))
             .put(pasteUrl)
             .send({
-                item_id: 7,
-                new_parent: 3,
+                item_id: "7",
+                new_parent: "3",
                 category_id: null,
-                action: 'cut'
+                action: "cut"
             }); 
     
             expect(response.status).toEqual(200);
     
-            const cutItem = await getItemInfo(db, 7)
-            expect(cutItem.parent_id).toEqual(3);
+            const cutItem = await get_item_info(db, "7")
+            expect(cutItem.parent_id).toEqual("3");
             expect(cutItem.category_id).toBeNull();
     
-            const prevItem = await get_file(
-                db, itemInfo.item_name, 'file', itemInfo.parent_id);
+            const prevItem = await get_item(
+                db, itemInfo.item_name, 'deck', itemInfo.parent_id);
             expect(prevItem).toBeNull();
         });
 
         test("Into a thematic folder", async () =>{
-            const itemInfo = await getItemInfo(db, 27);
+            const itemInfo = await get_item_info(db, 27);
         
             const response = await request(app(db))
             .put(pasteUrl)
             .send({
-                item_id: 27,
-                new_parent: 5,
-                category_id: 8,
+                item_id: "27",
+                new_parent: "5",
+                category_id: "8",
                 action: 'cut'
             }); 
     
             expect(response.status).toEqual(200);
     
-            const cutItem = await getItemInfo(db, 27)
-            expect(cutItem.parent_id).toEqual(5);
+            const cutItem = await get_item_info(db, "27")
+            expect(cutItem.parent_id).toEqual("5");
             expect(cutItem.category_id).toEqual("8");
             expect(cutItem.item_order).toEqual("3");
     
-            const prevItem = await get_file
-            (db, itemInfo.item_name, 'file', itemInfo.parent_id);
+            const prevItem = await get_item(
+                db, itemInfo.item_name, 'file', itemInfo.parent_id);
             expect(prevItem).toBeNull();
 
-            const newDirectory = await getDirectory(db, glob.user_1, 5);
+            const newDirectory = await get_directory(db, glob.user_1, 5);
             // All items in categories are ordered.
             const groupedDir = group_objects(newDirectory[0], 'category_id');
             for (let group in groupedDir) {
@@ -167,29 +174,29 @@ describe('Cut', () => {
         });
 
         test("Out of a thematic folder", async () => {
-            const itemInfo = await getItemInfo(db, 19);
+            const itemInfo = await get_item_info(db, 19);
         
             const response = await request(app(db))
             .put(pasteUrl)
             .send({
-                item_id: 19,
-                new_parent: 4,
+                item_id: "19",
+                new_parent: "4",
                 category_id: null,
                 action: 'cut'
             }); 
     
             expect(response.status).toEqual(200);
     
-            const cutItem = await getItemInfo(db, 19);
-            expect(cutItem.parent_id).toEqual(4);
+            const cutItem = await get_item_info(db, "19");
+            expect(cutItem.parent_id).toEqual("4");
             expect(cutItem.category_id).toBeNull();
             expect(cutItem.item_order).toEqual("4");
     
-            const prevItem = await get_file(
+            const prevItem = await get_item(
                 db, itemInfo.item_name, 'file', itemInfo.parent_id);
             expect(prevItem).toBeNull();
 
-            const oldDirectory = await getDirectory(
+            const oldDirectory = await get_directory(
                 db, glob.user_1, itemInfo.parent_id);
             // All items in categories are ordered.
             const groupedDir = group_objects(oldDirectory[0], 'category_id');
@@ -203,20 +210,20 @@ describe('Cut', () => {
             const response = await request(app(db))
             .put(pasteUrl)
             .send({
-                item_id: 19,
-                new_parent: 6,
-                category_id: 10,
+                item_id: "19",
+                new_parent: "6",
+                category_id: "10",
                 action: 'cut'
             });
 
             expect(response.status).toEqual(200);
 
-            const cutItem = await getItemInfo(db, 19);
-            expect(cutItem.parent_id).toEqual(6);
+            const cutItem = await get_item_info(db, "19");
+            expect(cutItem.parent_id).toEqual("6");
             expect(cutItem.category_id).toEqual("10");
             expect(cutItem.item_order).toEqual("3");
 
-            const directory = await getDirectory(db, glob.user_1, 6);
+            const directory = await get_directory(db, glob.user_1, 6);
             // All items in categories are ordered.
             const groupedDir = group_objects(directory[0], 'category_id');
             for (let group in groupedDir) {
@@ -229,24 +236,24 @@ describe('Cut', () => {
             const regularResponse = await request(app(db))
             .put(pasteUrl)
             .send({
-                item_id: 7,
-                new_parent: 4,
+                item_id: "7",
+                new_parent: "4",
                 category_id: null,
                 action: 'cut'
             }); 
     
-            fail_with_json(regularResponse, 400, "File 'deck_1' already exists in the directory.");
+            fail_with_json(regularResponse, 400, "Deck 'deck_1' already exists in the directory.");
 
             const categoryResponse = await request(app(db))
             .put(pasteUrl)
             .send({
-                item_id: 7,
-                new_parent: 6,
-                category_id: 10,
+                item_id: "7",
+                new_parent: "6",
+                category_id: "10",
                 action: 'cut'
             }); 
     
-            fail_with_json(categoryResponse, 400, "File 'deck_1' already exists in the directory.");
+            fail_with_json(categoryResponse, 400, "Deck 'deck_1' already exists in the directory.");
         });
     });
 
@@ -255,23 +262,23 @@ describe('Cut', () => {
             const response = await request(app(db))
             .put(pasteUrl)
             .send({
-                item_id: 3,
-                new_parent: 4,
+                item_id: "3",
+                new_parent: "4",
                 category_id: null,
-                action: 'cut'
+                action: "cut"
             });
 
-            const itemInfo = await getItemInfo(db, 3);
+            const itemInfo = await get_item_info(db, "3");
             expect(response.status).toEqual(200);
-            expect(itemInfo.parent_id).toEqual(4);
+            expect(itemInfo.parent_id).toEqual("4");
         });
 
         test('Should not paste a folder into one of its subdirectories', async () => {
             const response = await request(app(db))
             .put(pasteUrl)
             .send({
-                item_id: 3,
-                new_parent: 24,
+                item_id: "3",
+                new_parent: "24",
                 category_id: null,
                 action: 'cut'
             });
@@ -283,8 +290,8 @@ describe('Cut', () => {
             const response = await request(app(db))
             .put(pasteUrl)
             .send({
-                item_id: 3,
-                new_parent: 3,
+                item_id: "3",
+                new_parent: "3",
                 category_id: null,
                 action: 'cut'
             });
@@ -296,10 +303,10 @@ describe('Cut', () => {
             const response = await request(app(db))
             .put(pasteUrl)
             .send({
-                item_id: 3,
-                new_parent: 5,
-                category_id: 8,
-                action: 'cut'
+                item_id: "3",
+                new_parent: "5",
+                category_id: "8",
+                action: "cut"
             });
 
             fail_with_json(response, 400, "Invalid directory");
@@ -309,8 +316,8 @@ describe('Cut', () => {
             const response = await request(app(db))
             .put(pasteUrl)
             .send({
-                item_id: 1,
-                new_parent: 3,
+                item_id: "1",
+                new_parent: "3",
                 category_id: null,
                 action: 'cut'
             });
@@ -324,46 +331,61 @@ describe('Cut', () => {
             const response = await request(app(db))
             .put(pasteUrl)
             .send({
-                item_id: 8,
-                new_parent: 23,
+                item_id: "8",
+                new_parent: "23",
                 category_id: null,
                 action: 'cut'
             });
 
             expect(response.status).toEqual(200);
 
-            const category = await getItemInfo(db, 8);
-            expect(category.parent_id).toEqual(23);
+            const category = await get_item_info(db, "8");
+            expect(category.parent_id).toEqual("23");
             expect(category.item_order).toEqual("1");
             
-            const categoryItems = await getDirectory(db, glob.user_1, 23);
-            expect(categoryItems[0].length).toBe(3);
+            const categoryItems = await get_directory(db, glob.user_1, "23");
+            expect(categoryItems[0].length).toEqual(3);
 
             const response_2 = await request(app(db))
             .put(pasteUrl)
             .send({
-                item_id: 9,
-                new_parent: 6,
+                item_id: "9",
+                new_parent: "6",
                 category_id: null,
                 action: 'cut'
             });
 
             expect(response_2.status).toEqual(200);
 
-            const category_2 = await getItemInfo(db, 9);
-            expect(category_2.parent_id).toEqual(6);
+            const category_2 = await get_item_info(db, "9");
+            expect(category_2.parent_id).toEqual("6");
             expect(category_2.item_order).toEqual("3");
             
-            const categoryItems_2 = await getDirectory(db, glob.user_1, 6);
-            expect(categoryItems_2[0].length).toBe(10);
+            const categoryItems_2 = await get_directory(db, glob.user_1, "6");
+            expect(categoryItems_2[0].length).toEqual(10);
+        });
+
+        test('Should move an empty category', async () => {
+            const response = await request(app(db))
+            .put(pasteUrl)
+            .send({
+                item_id: "38",
+                new_parent: "5",
+                category_id: null,
+                action: 'cut'
+            });
+
+            expect(response.status).toEqual(200);
+            const category = await get_item_info(db, "38");
+            expect(category.parent_id).toEqual("5");
         });
 
         test('Should not move a category out of a thematic folder', async () => {
             const response = await request(app(db))
             .put(pasteUrl)
             .send({
-                item_id: 9,
-                new_parent: 3,
+                item_id: "9",
+                new_parent: "3",
                 category_id: null,
                 action: 'cut'
             });
@@ -375,9 +397,9 @@ describe('Cut', () => {
             const response = await request(app(db))
             .put(pasteUrl)
             .send({
-                item_id: 9,
-                new_parent: 6,
-                category_id: 11,
+                item_id: "9",
+                new_parent: "6",
+                category_id: "11",
                 action: 'cut'
             });
 
@@ -388,8 +410,8 @@ describe('Cut', () => {
             const response = await request(app(db))
             .put(pasteUrl)
             .send({
-                item_id: 10,
-                new_parent: 5,
+                item_id: "10",
+                new_parent: "5",
                 category_id: null,
                 action: 'cut'
             });
@@ -401,8 +423,8 @@ describe('Cut', () => {
             const response = await request(app(db))
             .put(pasteUrl)
             .send({
-                item_id: 11,
-                new_parent: 5,
+                item_id: "11",
+                new_parent: "5",
                 category_id: null,
                 action: 'cut'
             });
@@ -418,8 +440,8 @@ describe('Destination', () => {
         const response = await request(app(db))
         .put(pasteUrl)
         .send({
-            item_id: 27,
-            new_parent: 7,
+            item_id: "27",
+            new_parent: "7",
             category_id: null,
             action: 'copy'
         }); 
@@ -431,8 +453,8 @@ describe('Destination', () => {
         const response = await request(app(db))
         .put(pasteUrl)
         .send({
-            item_id: 27,
-            new_parent: 28,
+            item_id: "27",
+            new_parent: "28",
             category_id: null,
             action: 'cut'
         }); 
@@ -444,9 +466,9 @@ describe('Destination', () => {
         const response = await request(app(db))
         .put(pasteUrl)
         .send({
-            item_id: 7,
-            new_parent: 3,
-            category_id: 8,
+            item_id: "7",
+            new_parent: "3",
+            category_id: "8",
             action: 'copy'
         }); 
 
@@ -457,8 +479,8 @@ describe('Destination', () => {
         const response = await request(app(db))
         .put(pasteUrl)
         .send({
-            item_id: 27,
-            new_parent: 6,
+            item_id: "27",
+            new_parent: "6",
             category_id: null,
             action: 'cut'
         }); 
@@ -470,9 +492,9 @@ describe('Destination', () => {
         const response = await request(app(db))
         .put(pasteUrl)
         .send({
-            item_id: 27,
-            new_parent: 5,
-            category_id: 31,
+            item_id: "27",
+            new_parent: "5",
+            category_id: "31",
             action: 'copy'
         }); 
 
@@ -483,9 +505,9 @@ describe('Destination', () => {
         const response = await request(app(db))
         .put(pasteUrl)
         .send({
-            item_id: 19,
-            new_parent: 26,
-            category_id: 8,
+            item_id: "19",
+            new_parent: "26",
+            category_id: "8",
             action: 'cut'
         }); 
 
@@ -496,8 +518,8 @@ describe('Destination', () => {
         const dirResponse = await request(app(db))
             .put(pasteUrl)
             .send({
-                item_id: 21,
-                new_parent: 4,
+                item_id: "21",
+                new_parent: "4",
                 category_id: null,
                 action: 'cut'
             });
@@ -507,9 +529,9 @@ describe('Destination', () => {
             const categoryResponse = await request(app(db))
             .put(pasteUrl)
             .send({
-                item_id: 18,
-                new_parent: 6,
-                category_id: 11,
+                item_id: "18",
+                new_parent: "6",
+                category_id: "11",
                 action: 'cut'
             });
 
@@ -518,8 +540,8 @@ describe('Destination', () => {
 
     test("Body values must be present and valid", async () => {
         await test_utils.check_type_blank({
-            item_id: 7,
-            new_parent: 3,
+            item_id: "7",
+            new_parent: "3",
             category_id: null,
             action: 'copy'
         }, pasteUrl, 'put', app, db);
@@ -531,8 +553,8 @@ describe('Action', () => {
         const response = await request(app(db))
             .put(pasteUrl)
             .send({
-                item_id: 7,
-                new_parent: 3,
+                item_id: "7",
+                new_parent: "3",
                 category_id: null,
                 action: 'krangle'
             }); 

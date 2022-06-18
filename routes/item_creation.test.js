@@ -2,11 +2,11 @@ const app = require('../app');
 const request = require('supertest');
 
 const db = require('../database/test_database');
-const {roV } = require('../database/db_functions/other_functions');
-const setup = require('../database/db_functions/setup');
+const {roV } = require('../database/db_functions/common/functions');
+const setup = require('../database/setup');
 const { glob } = require('../database/build_database');
 
-const { getItemInfo } = require('../database/db_functions/item_functions');
+const { get_item_info } = require('../database/db_functions/item_functions');
 const test_utils = require('../test/test_functions');
 const { fail_with_json } = require('../test/test_functions');
 
@@ -593,67 +593,67 @@ describe('Create a category', () => {
 });
 
 describe('Delete', () => {
-    return;
+
     const deleteUrl = `/delete_item/${glob.user_1}`;
-    test('A file', async () => {
+    test('A deck', async () => {
         const response = await request(app(db))
             .delete(deleteUrl)
             .send({
-                "item_id": 27
+                "item_id": "27"
             });
         
         expect(response.status).toEqual(200);
-        expect(await getItemInfo(db, 27)).toBe(false);
+        expect(await get_item_info(db, "27")).toBe(false);
     });
 
     test('A folder and all subdirectories', async () => {
         const response = await request(app(db))
             .delete(deleteUrl)
             .send({
-                "item_id": 24
+                "item_id": "24"
             });
         
         expect(response.status).toEqual(200);
-        expect(await getItemInfo(db, 24)).toBe(false);
-        expect(await getItemInfo(db, 25)).toBe(false);
-        expect(await getItemInfo(db, 26)).toBe(false);
+        expect(await get_item_info(db, "24")).toBe(false);
+        expect(await get_item_info(db, "25")).toBe(false);
+        expect(await get_item_info(db, "26")).toBe(false);
     });
 
     test('A thematic folder and all items', async () => {
         const response = await request(app(db))
             .delete(deleteUrl)
             .send({
-                "item_id": 5
+                "item_id": "5"
             });
         
         expect(response.status).toEqual(200);
-        expect(await getItemInfo(db, 5)).toBe(false);
+        expect(await get_item_info(db, "5")).toBe(false);
         // Delete categories
-        expect(await getItemInfo(db, 8)).toBe(false);
-        expect(await getItemInfo(db, 9)).toBe(false);
+        expect(await get_item_info(db, "8")).toBe(false);
+        expect(await get_item_info(db, "9")).toBe(false);
         // Delete category items
-        expect(await getItemInfo(db, 12)).toBe(false);
-        expect(await getItemInfo(db, 15)).toBe(false);
+        expect(await get_item_info(db, "12")).toBe(false);
+        expect(await get_item_info(db, "15")).toBe(false);
     });
 
     test('Category and all of its items', async () => {
         const response = await request(app(db))
             .delete(deleteUrl)
             .send({
-                "item_id": 11
+                "item_id": "11"
             });
         
         expect(response.status).toEqual(200);
-        expect(await getItemInfo(db, 11)).toBe(false);
-        expect(await getItemInfo(db, 18)).toBe(false);
-        expect(await getItemInfo(db, 20)).toBe(false);
+        expect(await get_item_info(db, "11")).toBe(false);
+        expect(await get_item_info(db, "18")).toBe(false);
+        expect(await get_item_info(db, "20")).toBe(false);
     });
 
     test('Must not delete a root folder', async () => {
         const response = await request(app(db))
             .delete(deleteUrl)
             .send({
-                "item_id": 1
+                "item_id": "1"
             });
         
         expect(fail_with_json(response, 400, "Cannot delete root folder"));
@@ -663,7 +663,7 @@ describe('Delete', () => {
         const response = await request(app(db))
             .delete(deleteUrl)
             .send({
-                "item_id": 29
+                "item_id": "29"
             });
         
         expect(fail_with_json(response));
@@ -673,7 +673,7 @@ describe('Delete', () => {
         const response = await request(app(db))
             .delete(deleteUrl)
             .send({
-                "item_id": 29353
+                "item_id": "29353"
             });
         
         expect(fail_with_json(response, 400, "Item does not exist anymore..."));
@@ -682,7 +682,7 @@ describe('Delete', () => {
 
     test("Body values must be present and valid", async () => {
         await test_utils.check_type_blank({
-            "item_id": 7
+            "item_id": "7"
         }, deleteUrl, 'delete', app, db);
     });
 })

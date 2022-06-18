@@ -105,7 +105,7 @@ async function check_type_blank(correctRequest, route, operation, server, db) {
         'object': ['3'],
         'array': {'words': ['yes']},
         'boolean': 'not really',
-        'null': '6',
+        'null': 6,
         'undefined': 'should work'
     }
 

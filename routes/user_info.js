@@ -37,12 +37,12 @@ const serve_item = async (req, res) => {
     const pathExists = await item_utils.check_deck_path(db, username, directory_id, item_id);
 
     if (!pathExists) {
-        return res.status(404).send({"errDesc": "Item not found"});
+        return res.status(404).send({"errDesc": "Deck not found"});
     }
 
-    const itemInfo = await item_utils.get_item_info(db, item_id);
+    const itemInfo = await item_utils.get_deck_info(db, item_id);
     
-    if (itemInfo === null) {
+    if (!itemInfo) {
         return res.status(404).send({"errDesc": "Deck not found"});
     } else {
         return res.status(200).send(itemInfo);
