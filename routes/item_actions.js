@@ -33,9 +33,10 @@ const change_item_order = async (req, res) => {
     }
 
     let categoryError = false;
+    let categoryInfo;
     if (category_id !== null) {
         // Provided category must be valid.
-        var categoryInfo = await item_utils.get_item_info(db, category_id);
+        categoryInfo = await item_utils.get_item_info(db, category_id);
         if (!categoryInfo) {
             categoryError = true;
         }
@@ -54,7 +55,7 @@ const change_item_order = async (req, res) => {
         // Category and moved item are not in the same folder.
         if (categoryInfo.parent_id !== itemInfo.parent_id) {
             categoryError = true;
-        }
+        }    
     } else {
         const dirInfo = await item_utils.get_item_info(db, itemInfo.parent_id);
         if (!dirInfo) {
@@ -71,6 +72,14 @@ const change_item_order = async (req, res) => {
 
     if (categoryError) {
         return res.status(400).send({"errDesc": "Invalid category"});
+    }
+
+    if (categoryInfo) {
+        if (itemInfo.target_language !== categoryInfo.category_target_language) {
+            return res.status(400).send({"errDesc": "Category target language is different."});
+        } else if (itemInfo.source_language !== categoryInfo.category_source_language) {
+            return res.status(400).send({"errDesc": "Category source language is different."});
+        }
     }
 
     // Item moved to the same place.

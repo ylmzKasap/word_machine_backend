@@ -56,7 +56,7 @@ describe('Create a deck', () => {
         expect(roV(deck).artist_name).toEqual("Van Gogh");
         expect(roV(deck).reference_link).toEqual("van_gogh.com");
         expect(roV(deck, 0).english).toEqual("square");
-        expect(roV(deck, 0).image_path).toEqual("square_2.png");
+        expect(roV(deck, 0).image_path).toEqual("square.png");
         expect(roV(deck, 1).english_sound_path).toEqual("palace.mp3");
         expect(roV(deck, 1).english_sound_path).toEqual("palace.mp3");
         expect(roV(deck, 2).turkish).toEqual("asansör");
@@ -205,6 +205,21 @@ describe('Create a deck', () => {
             });
         
         fail_with_json(equalResponse, 400, "Invalid language");
+    });
+
+    test("Deck in a category must have category's language", async () => {
+        const response = await request(app(db))
+            .post(createDeckUrl)
+            .send({
+                "deckName": "weird_deck",
+                "wordArray": ["asansör", "meydan", "saray"],
+                "parent_id": "5",
+                "target_language": "turkish",
+                "source_language": "english",
+                "category_id": "8"
+            });
+        
+        fail_with_json(response, 400, "Invalid category");
     });
 
     test("Category must exist", async () => {

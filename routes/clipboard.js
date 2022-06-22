@@ -76,8 +76,9 @@ module.exports = async (req, res) => {
     }
 
     let categoryError = false;
+    let categoryInfo;
     if (category_id !== null) {
-        const categoryInfo = await item_utils.get_item_info(db, category_id);
+        categoryInfo = await item_utils.get_item_info(db, category_id);
         if (categoryInfo.owner !== username) {
             categoryError = true;
         }
@@ -115,6 +116,13 @@ module.exports = async (req, res) => {
         return res.status(400).send({"errDesc": 'Invalid category'});
     }
 
+    if (categoryInfo) {
+        if (itemInfo.target_language !== categoryInfo.category_target_language) {
+            return res.status(400).send({"errDesc": "Category target language is different."});
+        } else if (itemInfo.source_language !== categoryInfo.category_source_language) {
+            return res.status(400).send({"errDesc": "Category source language is different."});
+        }
+    }
     
     // Check whether a folder is copied into its own subdirectory.
     if (itemInfo.item_type === 'folder') {
@@ -134,7 +142,8 @@ module.exports = async (req, res) => {
             return res.status(400).send({"errDesc": 'Can only copy a deck.'});
         }
         const deckInfo = await item_utils.get_deck_info(db, item_id);
-        await add_deck(db, username, itemInfo.item_name, new_parent, deckInfo.words,
+        const targetWords = deckInfo.words.map(w => w[deckInfo.target_language]);
+        await add_deck(db, username, itemInfo.item_name, new_parent, targetWords,
             deckInfo.target_language, deckInfo.source_language, category_id)
             .catch((err) => res.status(400).send(
                 {"errDesc": `${titleType} '${itemInfo.item_name}' already exists in the directory.`}));

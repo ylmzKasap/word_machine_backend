@@ -5,7 +5,8 @@ const deckQuery = `
         LEFT JOIN word_content on words.media_id = word_content_id
         LEFT JOIN translations on word_content.word_content_id = translations.translation_id
         LEFT JOIN sound_paths on word_content.word_content_id = sound_paths.sound_id
-    WHERE item_id = $1`
+    WHERE item_id = $1
+    ORDER BY word_order`
 
 module.exports = {
     deckQuery

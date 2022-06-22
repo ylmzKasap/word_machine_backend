@@ -86,6 +86,11 @@ const create_deck = async (req, res) => {
                 // Directory does not have such category.
                 categoryError = true;
             }
+            if (categoryInfo.category_target_language !== target_language
+                || categoryInfo.category_source_language !== source_language) {
+                    // Category language is different from deck language.
+                    categoryError = true;
+                }
         } else {
             categoryError = true;}
         

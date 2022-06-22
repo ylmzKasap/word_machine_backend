@@ -93,7 +93,7 @@ describe('Change item directory', () => {
         fail_with_json(targetResponse, 400, "'deck_1' already exists in 'folder_2'.");
     });
 
-    test('Should not move the item outside of the root folder', async () => {
+    test('Should not move a deck into a category with different languages', async () => {
         const response = await request(app(db))
         .put(updateUrl)
         .send({
@@ -256,8 +256,8 @@ describe('Set item order', () => {
         const response = await request(app(db))
         .put(relocateUrl)
         .send({
-            item_id: "18",
-            category_id: "10",
+            item_id: "14",
+            category_id: "8",
             new_order: "2",
             direction: 'after'
         });
@@ -265,9 +265,9 @@ describe('Set item order', () => {
         expect(response.status).toEqual(200);
 
         // Item relocated.
-        const itemInfo = await get_item_info(db, "18");
+        const itemInfo = await get_item_info(db, "14");
         expect(itemInfo.item_order).toEqual("3");
-        expect(itemInfo.category_id).toEqual("10");
+        expect(itemInfo.category_id).toEqual("8");
 
         const directory = await get_directory(db, glob.user_1, itemInfo.parent_id);
         // All items in categories are ordered.
@@ -422,12 +422,25 @@ describe('Set item order', () => {
         .put(relocateUrl)
         .send({
             item_id: "19",
+            category_id: "11",
+            new_order: "1",
+            direction: 'after'
+        });
+
+        expect(beforeResponse.status).toEqual(200);
+    });
+
+    test('Should not move a deck into a category with different languages', async () => {
+        const response = await request(app(db))
+        .put(relocateUrl)
+        .send({
+            item_id: "19",
             category_id: "10",
             new_order: "2",
             direction: 'before'
         });
 
-        expect(beforeResponse.status).toEqual(200);
+        fail_with_json(response, 400, 'Category target language is different.');
     });
 
     test('Direction must be before or after', async () => {

@@ -77,7 +77,7 @@ describe('Serve item info', () => {
         expect(response.headers["content-type"]).toMatch(/json/);
         expect(response.status).toEqual(200);
         expect(response.body.words[0].deck_id).toEqual("7");  
-        expect(response.body.words[0].image_path).toEqual("square_2.png");
+        expect(response.body.words[0].image_path).toEqual("square.png");
         expect(response.body.words[0].english).toEqual("square");
         expect(response.body.words[1].english_sound_path).toEqual("palace.mp3");
         expect(response.body.words[2].word_order).toEqual(3);

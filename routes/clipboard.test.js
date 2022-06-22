@@ -55,17 +55,17 @@ describe('Copy', () => {
             .put(pasteUrl)
             .send({
                 item_id: "27",
-                new_parent: "6",
-                category_id: "10",
+                new_parent: "5",
+                category_id: "9",
                 action: "copy"
             }); 
     
             expect(response.status).toEqual(200);
     
-            const copiedDeck = await get_item(db, itemInfo.item_name, 'deck', 6);
+            const copiedDeck = await get_item(db, itemInfo.item_name, 'deck', 5);
             expect(copiedDeck.item_id).toEqual("39");
-            expect(copiedDeck.parent_id).toEqual("6");
-            expect(copiedDeck.category_id).toEqual("10");
+            expect(copiedDeck.parent_id).toEqual("5");
+            expect(copiedDeck.category_id).toEqual("9");
         });
 
         test('Outside of a thematic folder', async () => {
@@ -210,20 +210,20 @@ describe('Cut', () => {
             const response = await request(app(db))
             .put(pasteUrl)
             .send({
-                item_id: "19",
-                new_parent: "6",
-                category_id: "10",
+                item_id: "14",
+                new_parent: "5",
+                category_id: "8",
                 action: 'cut'
             });
 
             expect(response.status).toEqual(200);
 
-            const cutItem = await get_item_info(db, "19");
-            expect(cutItem.parent_id).toEqual("6");
-            expect(cutItem.category_id).toEqual("10");
+            const cutItem = await get_item_info(db, "14");
+            expect(cutItem.parent_id).toEqual("5");
+            expect(cutItem.category_id).toEqual("8");
             expect(cutItem.item_order).toEqual("3");
 
-            const directory = await get_directory(db, glob.user_1, 6);
+            const directory = await get_directory(db, glob.user_1, 5);
             // All items in categories are ordered.
             const groupedDir = group_objects(directory[0], 'category_id');
             for (let group in groupedDir) {
@@ -247,13 +247,26 @@ describe('Cut', () => {
             const categoryResponse = await request(app(db))
             .put(pasteUrl)
             .send({
-                item_id: "7",
+                item_id: "21",
+                new_parent: "5",
+                category_id: "9",
+                action: 'cut'
+            });
+    
+            fail_with_json(categoryResponse, 400, "Deck 'deck_1' already exists in the directory.");
+        });
+
+        test('Fail on language mismatch', async () => {
+            const regularResponse = await request(app(db))
+            .put(pasteUrl)
+            .send({
+                item_id: "19",
                 new_parent: "6",
                 category_id: "10",
                 action: 'cut'
             }); 
     
-            fail_with_json(categoryResponse, 400, "Deck 'deck_1' already exists in the directory.");
+            fail_with_json(regularResponse, 400, "Category target language is different.");
         });
     });
 

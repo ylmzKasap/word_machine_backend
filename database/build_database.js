@@ -33,8 +33,8 @@ async function setup(db) {
     await user_utils.add_user(db, glob.user_2);
 
     // Add images
-    await media_utils.add_image(db, 'Van Gogh', 'van_gogh.com', 'square_2.png', 'admin', {english: 'square', turkish: 'karesini almak', german: 'zu quadrieren'});
     await media_utils.add_image(db, 'Van Gogh', 'van_gogh.com', 'square.png', 'admin', {english: 'square', turkish: 'meydan', german: 'Quadrat'});
+    await media_utils.add_image(db, 'Van Gogh', 'van_gogh.com', 'square_2.png', 'admin', {english: 'square', turkish: 'karesini almak', german: 'zu quadrieren'});
     await media_utils.add_image(db, 'Caravaggio', 'caravaggio.com', 'palace.png', 'admin', {english: 'palace', turkish: 'saray', german: 'Palast'});
     await media_utils.add_image(db, 'Paul Gaugin', 'paul.com', 'coffee_table.jpg', 'admin', {english: 'coffee table', turkish: 'sehpa', german: 'Kaffetisch', greek: 'τραπεζάκι του καφέ'});
     await media_utils.add_image(db, 'Caspar David Friedrich', 'caspar.org', 'elevator.png', 'admin', {english: 'elevator', turkish: 'asansör', german: 'Aufzug'});
@@ -47,7 +47,11 @@ async function setup(db) {
     await media_utils.add_sound(db, 4, 'english', 'coffee table.mp3');
     await media_utils.add_sound(db, 5, 'english', 'elevator.mp3');
     await media_utils.add_sound(db, 6, 'english', 'roof.mp3');
-    await media_utils.add_sound(db, 2, 'turkish', 'meydan.mp3');
+    await media_utils.add_sound(db, 1, 'turkish', 'meydan.mp3');
+    await media_utils.add_sound(db, 3, 'turkish', 'saray.mp3');
+    await media_utils.add_sound(db, 4, 'turkish', 'sehpa.mp3');
+    await media_utils.add_sound(db, 5, 'turkish', 'asansör.mp3');
+    await media_utils.add_sound(db, 6, 'turkish', 'çatı.mp3');
 
     // Add user_1 items.
     // Root
@@ -59,15 +63,15 @@ async function setup(db) {
 
     // Categories
     await item_utils.add_category(db, glob.user_1, 'category_1', 5, '#333', 'english', 'turkish');
-    await item_utils.add_category(db, glob.user_1, 'category_2', 5, '#666', 'german', 'english');
+    await item_utils.add_category(db, glob.user_1, 'category_2', 5, '#666', 'english', 'turkish');
     await item_utils.add_category(db, glob.user_1, 'category_1', 6, '#999', 'turkish', 'german');
     await item_utils.add_category(db, glob.user_1, 'category_3', 6, '#BBB', 'german', 'turkish');
 
     // Category items
     await item_utils.add_deck(db, glob.user_1, 'deck_1', 5, words, undefined, undefined, 8);
     await item_utils.add_deck(db, glob.user_1, 'deck_2', 5, words, undefined, undefined, 8);
-    await item_utils.add_deck(db, glob.user_1, 'deck_3', 5, worter, undefined, undefined, 9);
-    await item_utils.add_deck(db, glob.user_1, 'deck_4', 5, worter, undefined, undefined, 9);
+    await item_utils.add_deck(db, glob.user_1, 'deck_3', 5, words, undefined, undefined, 9);
+    await item_utils.add_deck(db, glob.user_1, 'deck_4', 5, words, undefined, undefined, 9);
     await item_utils.add_deck(db, glob.user_1, 'deck_5', 6, kelimeler, undefined, undefined, 10);
     await item_utils.add_deck(db, glob.user_1, 'deck_6', 6, kelimeler, undefined, undefined, 10);
     await item_utils.add_deck(db, glob.user_1, 'deck_1', 6, worter, undefined, undefined, 11);
@@ -75,7 +79,7 @@ async function setup(db) {
     await item_utils.add_deck(db, glob.user_1, 'haha yes', 6, worter, undefined, undefined, 11);
 
     // Folder Content
-    await item_utils.add_deck(db, glob.user_1, 'deck_1', 4, words, 'english', 'german');
+    await item_utils.add_deck(db, glob.user_1, 'deck_1', 4, words, 'english', 'turkish');
     await item_utils.add_folder(db, glob.user_1, 'folder_3', 'folder', 4);
     await item_utils.add_folder(db, glob.user_1, 'thematic_1', 'thematic_folder', 4);
 
