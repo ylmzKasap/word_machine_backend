@@ -21,6 +21,7 @@ if (isProduction) {
 const app = startApp(database);
 
 async function main() {
+  db_tests.setup(database);
 }
 
 main()

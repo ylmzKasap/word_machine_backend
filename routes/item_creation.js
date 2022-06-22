@@ -106,17 +106,17 @@ const create_deck = async (req, res) => {
             return res.status(400).send({"errDesc": "Invalid language"});
         }
     
-    // Locate image files.
-    const [missingImages, missingSounds] = await utils.locate_words(
-        db, wordArray, target_language);
+    /*     // Locate image files.
+        const [missingImages, missingSounds] = await utils.locate_words(
+            db, wordArray, target_language);
 
-    if (missingImages.length > 0 || missingSounds.length > 0) {
-        return res.status(400).send({
-            "errDesc": "Some files could not be found",
-            "images": missingImages,
-            "sounds": missingSounds
-        });
-    }
+        if (missingImages.length > 0 || missingSounds.length > 0) {
+            return res.status(400).send({
+                "errDesc": "Some files could not be found",
+                "images": missingImages,
+                "sounds": missingSounds
+            });
+        } */
     
     // Create deck
     await item_crt_utils.add_deck(db, 
